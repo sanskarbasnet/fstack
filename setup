@@ -1009,3 +1009,21 @@ if [ "$NO_TEAM_MODE" -eq 1 ]; then
 
   log "Team mode disabled: auto-update hook removed."
 fi
+
+# 11. fstack brain layer (the multi-agent coordination spine)
+# Skipped only if --no-brain was passed.
+if [ "${NO_BRAIN:-0}" -eq 0 ]; then
+  log ""
+  log "Setting up fstack brain (shared multi-agent memory)..."
+  if [ -x "$SOURCE_FSTACK_DIR/bin/fstack-brain-setup" ]; then
+    "$SOURCE_FSTACK_DIR/bin/fstack-brain-setup" || {
+      log "Brain setup failed — re-run with: bin/fstack-brain-setup"
+    }
+  else
+    log "(no fstack-brain-setup found, skipping brain bootstrap)"
+  fi
+fi
+
+# Hardcode our principles regardless of flags:
+"$FSTACK_CONFIG" set auto_upgrade false 2>/dev/null || true
+"$FSTACK_CONFIG" set telemetry off 2>/dev/null || true

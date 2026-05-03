@@ -690,7 +690,21 @@ In plan mode before ExitPlanMode: if the plan file lacks `## FSTACK REVIEW REPOR
 
 PLAN MODE EXCEPTION — always allowed (it's the plan file).
 
-# /skillify — codify the last scrape into a permanent skill
+# /skillify — codify a working pattern into a permanent fstack skill
+
+<!-- fstack: skillify scaffolds skills LOCAL to your repo (not gbrain skillpacks) -->
+
+## fstack scope
+
+Unlike gstack's upstream skillify (which scaffolded gbrain skillpacks),
+fstack's /skillify creates a new skill **inside your fstack install**.
+The output is a directory at `~/.claude/skills/fstack/<name>/SKILL.md`
+that becomes a real slash command in your next session.
+
+After scaffolding, propose `/decide` to log the new skill's purpose so
+the other agent learns about it via /sync.
+
+---
 
 The productivity multiplier. `/scrape` discovered how to pull the data;
 `/skillify` writes it as deterministic Playwright-via-`browse-client`

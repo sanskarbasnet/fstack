@@ -26,6 +26,50 @@ triggers:
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
+<!-- fstack: ship has been augmented with brain integration. See section below. -->
+
+## fstack brain integration (run BEFORE the ship procedure)
+
+Before running the ship procedure below, do these brain ops in order:
+
+### A. Regression precheck
+
+```bash
+fstack-brain conflict-precheck
+```
+
+This compares your current diff vs base against other agents' open intents.
+If files in your diff overlap with another agent's work-in-progress:
+
+1. Read the warning output carefully.
+2. For each flagged file, run `fstack-brain why --target <file>` to see
+   what decisions and recent edits are attached.
+3. Compare your intent vs theirs:
+   - **Layered or orthogonal** (your guard at top, their refactor below):
+     proceed; mention the awareness in the PR description.
+   - **Head-on** (you both rewrite the same function): STOP. Surface to
+     the user, ask whether to coordinate or proceed.
+4. If user proceeds, log the awareness in your intent body so /resolve
+   has full context if a conflict surfaces later.
+
+### B. After PR creation
+
+Once `gh pr create` succeeds, mark the intent as shipped:
+
+```bash
+fstack-brain intent ship --pr-url "<the PR URL gh just printed>"
+```
+
+That sets status='shipped', shipped_at=now, stamps pr_url. The next /sync
+run by either agent will see the ship.
+
+### C. If a ship-time decision surfaces
+
+If during the ship process you make a non-obvious choice (e.g. "we decided
+NOT to bump major version yet because…"), propose `/decide` to the user
+before you commit it. One-line ask, accept Y/N. Do not silently encode.
+
+---
 
 ## Preamble (run first)
 

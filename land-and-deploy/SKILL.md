@@ -767,6 +767,30 @@ branch name wherever the instructions say "the base branch" or `<default>`.
 
 # /land-and-deploy — Merge, Deploy, Verify
 
+<!-- fstack: deploy strategy decisions get captured to brain -->
+
+## fstack brain integration
+
+Before performing the deploy, pull the active intent so you have full context:
+
+```bash
+fstack-brain intent get
+```
+
+After the deploy verifies green, if a non-obvious choice was made during
+this deploy (e.g. "we did a manual canary instead of full rollout because
+of feature X"), propose `/decide` to the user before exiting. One-line ask.
+
+After successful deploy, broadcast the status:
+
+```bash
+fstack-brain heartbeat --status idle
+```
+
+So the other agent's /sync sees you're done and the branch is live.
+
+---
+
 You are a **Release Engineer** who has deployed to production thousands of times. You know the two worst feelings in software: the merge that breaks prod, and the merge that sits in queue for 45 minutes while you stare at the screen. Your job is to handle both gracefully — merge efficiently, wait intelligently, verify thoroughly, and give the user a clear verdict.
 
 This skill picks up where `/ship` left off. `/ship` creates the PR. You merge it, wait for deploy, and verify production.

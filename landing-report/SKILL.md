@@ -20,7 +20,24 @@ allowed-tools:
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
-# /landing-report — Version Queue Dashboard
+# /queue (was /landing-report) — Multi-Agent Ship Queue Dashboard
+
+<!-- fstack: landing-report rebranded to /queue, now reads from fstack brain -->
+
+## fstack brain data source
+
+This skill now reports on BOTH agents' ship queues from the brain, not just
+the local working tree. Run this first:
+
+```bash
+fstack-brain standup --window day
+```
+
+That gives you shipped-today, in-flight, decisions, and handoffs for the
+whole team. Use it as your primary data source. The local-only PR audit
+below remains useful for files-changed deltas the brain doesn't track.
+
+---
 
 ## Preamble (run first)
 

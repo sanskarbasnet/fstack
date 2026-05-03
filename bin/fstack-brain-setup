@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# fstack-brain-setup — bootstrap the fstack brain layer.
+#
+# - Builds brain/cli into a single Bun binary
+# - Symlinks it to ~/.local/bin/fstack-brain (creates dir if needed)
+# - Prompts for config (agent_id, brain_url, brain_anon_key)
+# - Writes ~/.fstack/config.yaml
+# - Installs Claude Code hooks via hooks/install.ts
+# - Runs `fstack-brain doctor`
+#
+# Idempotent: re-running picks up changes safely.
+
+set -euo pipefail
+
+# Resolve fstack root (this script lives in <root>/bin/)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FSTACK_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CLI_DIR="$FSTACK_ROOT/brain/cli"
+HOOKS_INSTALLER="$FSTACK_ROOT/hooks/install.ts"
+FSTACK_HOME="${FSTACK_HOME:-$HOME/.fstack}"
+CONFIG_FILE="$FSTACK_HOME/config.yaml"
+BIN_TARGET="${FSTACK_BRAIN_BIN:-$HOME/.local/bin/fstack-brain}"
+
+log() { printf "fstack-brain-setup: %s\n" "$*"; }
+err() { printf "fstack-brain-setup: ERROR: %s\n" "$*" >&2; }
+
+# 1. Bun check
+if ! command -v bun >/dev/null 2>&1; then
+  err "bun is not installed. Install Bun first (https://bun.sh) and re-run."
+  exit 1
+fi
+
+# 2. Build CLI
+log "building brain CLI..."
+cd "$CLI_DIR"
+bun install --silent
+mkdir -p dist
+bun build ./src/index.ts --compile --outfile dist/fstack-brain --target=bun
+cd "$FSTACK_ROOT"
+
+# 3. Symlink binary
+mkdir -p "$(dirname "$BIN_TARGET")"
+ln -sf "$CLI_DIR/dist/fstack-brain" "$BIN_TARGET"
+log "linked $CLI_DIR/dist/fstack-brain → $BIN_TARGET"
+
+# Verify on PATH
+if ! command -v fstack-brain >/dev/null 2>&1; then
+  log "WARNING: fstack-brain not on PATH. Add this to your shell rc:"
+  log "  export PATH=\"$(dirname "$BIN_TARGET"):\$PATH\""
+fi
+
+# 4. Config
+mkdir -p "$FSTACK_HOME"
+chmod 700 "$FSTACK_HOME"
+
+if [ -f "$CONFIG_FILE" ]; then
+  log "config exists at $CONFIG_FILE — keeping (delete to re-prompt)"
+else
+  log "writing config to $CONFIG_FILE"
+  printf "agent_id: "
+  read -r AGENT_ID
+  printf "brain_url (Supabase URL, e.g. https://xxx.supabase.co): "
+  read -r BRAIN_URL
+  printf "brain_anon_key (Supabase anon key — paste; input is shown): "
+  read -r BRAIN_KEY
+  MACHINE="$(hostname 2>/dev/null || echo unknown)"
+  cat > "$CONFIG_FILE" <<EOF
+agent_id: $AGENT_ID
+brain_url: $BRAIN_URL
+brain_anon_key: $BRAIN_KEY
+machine: $MACHINE
+auto_upgrade: false
+telemetry: off
+EOF
+  chmod 600 "$CONFIG_FILE"
+  log "config written (mode 600)"
+fi
+
+# 5. Install hooks
+log "installing Claude Code hooks..."
+bun "$HOOKS_INSTALLER"
+
+# 6. Doctor
+log "running fstack-brain doctor..."
+if "$BIN_TARGET" doctor; then
+  log "✓ setup complete. Try '/sync' inside Claude Code to verify."
+else
+  err "doctor reported failures. Re-check Supabase URL/key and that schema.sql was applied."
+  exit 1
+fi

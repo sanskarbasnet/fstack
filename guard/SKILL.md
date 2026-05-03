@@ -35,6 +35,17 @@ hooks:
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
+<!-- fstack: guard broadcasts to brain so the other agent sees your scope. -->
+
+## fstack brain broadcast
+
+After /guard is fully set up (both /careful and /freeze active), broadcast
+the scope to the brain so the other agent's /sync surfaces it:
+
+```bash
+fstack-brain heartbeat --status reviewing \
+  --files "$(cat ~/.fstack/freeze.path 2>/dev/null || echo '')"
+```
 
 # /guard — Full Safety Mode
 

@@ -30,6 +30,20 @@ hooks:
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
+<!-- fstack: freeze broadcasts to brain so the other agent sees your scope. -->
+
+## fstack brain broadcast
+
+After successfully setting up a freeze, push the scope to the brain so the
+other agent's /sync surfaces it:
+
+```bash
+fstack-brain heartbeat --status reviewing \
+  --files "$(cat ~/.fstack/freeze.path 2>/dev/null || echo '')"
+```
+
+The status='reviewing' signals "I'm working defensively." Other agents seeing
+this will know to expect concentrated edits in that directory.
 
 # /freeze — Restrict Edits to a Directory
 

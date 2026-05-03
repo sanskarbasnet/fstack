@@ -731,6 +731,27 @@ branch name wherever the instructions say "the base branch" or `<default>`.
 
 # /retro — Weekly Engineering Retrospective
 
+<!-- fstack: retro now sources its data from the brain so it covers BOTH agents -->
+
+## fstack brain data source
+
+Before reading local timeline.jsonl files, pull the multi-agent retro material
+from the shared brain:
+
+```bash
+fstack-brain standup --window week
+```
+
+This returns shipped intents, in-flight intents, decisions logged, and
+handoffs across BOTH agents in the same repo — not just local commits. Use
+this as your primary data source. Fall back to local timeline files only for
+data the brain doesn't have (eg. fine-grained commit-by-commit traces).
+
+After the retro is generated, optionally `/decide` any new conventions the
+retro surfaced.
+
+---
+
 Generates a comprehensive engineering retrospective analyzing commit history, work patterns, and code quality metrics. Team-aware: identifies the user running the command, then analyzes every contributor with per-person praise and growth opportunities. Designed for a senior IC/CTO-level builder using Claude Code as a force multiplier.
 
 ## User-invocable
