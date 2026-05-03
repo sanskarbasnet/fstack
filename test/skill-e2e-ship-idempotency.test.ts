@@ -61,7 +61,7 @@ interface ShipFixture {
  * Returns the work-tree dir for /ship to operate on.
  */
 function buildShippedFixture(): ShipFixture {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gstack-ship-fixture-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'fstack-ship-fixture-'));
   const workTree = path.join(root, 'workspace');
   const bareRemote = path.join(root, 'origin.git');
   fs.mkdirSync(workTree, { recursive: true });

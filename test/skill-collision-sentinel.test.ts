@@ -2,19 +2,19 @@
  * Collision Sentinel — insurance policy against upstream slash-command collisions.
  *
  * History: in April 2026 Claude Code shipped /checkpoint as a native alias
- * for /rewind, silently shadowing the gstack /checkpoint skill. Users
+ * for /rewind, silently shadowing the fstack /checkpoint skill. Users
  * typed /checkpoint expecting to save state; agents routed to the built-in
  * or confabulated "this is a built-in you need to type directly" and nothing
  * was saved. We found out from users, not from tests.
  *
- * This file is the "never again" test. It enumerates every gstack skill name
+ * This file is the "never again" test. It enumerates every fstack skill name
  * from every SKILL.md.tmpl file in the repo and cross-checks against a
- * per-host list of known built-in slash commands. If any gstack skill name
+ * per-host list of known built-in slash commands. If any fstack skill name
  * collides with a host built-in, this test fails and names the collision.
  *
  * Maintenance: when Claude Code (or any other host we support) ships a new
  * built-in slash command, add the name to the host's KNOWN_BUILTINS list
- * below. If a gstack skill needs to coexist with a built-in anyway (e.g.,
+ * below. If a fstack skill needs to coexist with a built-in anyway (e.g.,
  * we decide the semantic overlap is acceptable), add it to
  * KNOWN_COLLISIONS_TOLERATED with a written justification.
  *
@@ -71,7 +71,7 @@ const KNOWN_BUILTINS: Record<string, string[]> = {
   // shadow risk because it's the biggest audience and ships the most
   // frequently; other hosts collide less often.
   // TODO: codex CLI built-ins (login, logout, exec, review, etc. — but we
-  // invoke codex from gstack, we don't install skills INTO codex the same
+  // invoke codex from fstack, we don't install skills INTO codex the same
   // way, so this is lower priority).
 };
 
@@ -81,7 +81,7 @@ const KNOWN_BUILTINS: Record<string, string[]> = {
 // review.
 const KNOWN_COLLISIONS_TOLERATED: Record<string, string> = {
   // skill name → one-line justification + action plan
-  'review': 'gstack /review (pre-landing diff analysis) pre-dates the Claude Code built-in /review (Review a pull request). The gstack skill is much richer (SQL safety, LLM trust boundary, specialist dispatch). Watch for user confusion reports and consider renaming to /diff-review or /pre-land if the collision bites. TODO: track user-reported incidents in TODOS.md.',
+  'review': 'fstack /review (pre-landing diff analysis) pre-dates the Claude Code built-in /review (Review a pull request). The fstack skill is much richer (SQL safety, LLM trust boundary, specialist dispatch). Watch for user confusion reports and consider renaming to /diff-review or /pre-land if the collision bites. TODO: track user-reported incidents in TODOS.md.',
 };
 
 // Generic-verb watchlist: skill names that are single common verbs, which
@@ -99,13 +99,13 @@ const GENERIC_VERB_WATCHLIST = [
 
 // ─── Enumerator ────────────────────────────────────────────────────────────
 
-interface GstackSkill {
+interface FstackSkill {
   name: string;
   templatePath: string;
 }
 
-function enumerateGstackSkills(): GstackSkill[] {
-  const skills: GstackSkill[] = [];
+function enumerateFstackSkills(): FstackSkill[] {
+  const skills: FstackSkill[] = [];
   // Scan one level deep for */SKILL.md.tmpl plus root SKILL.md.tmpl.
   const candidates = [
     path.join(ROOT, 'SKILL.md.tmpl'),
@@ -129,14 +129,14 @@ function enumerateGstackSkills(): GstackSkill[] {
 // ─── Tests ─────────────────────────────────────────────────────────────────
 
 describe('skill-collision-sentinel', () => {
-  const skills = enumerateGstackSkills();
+  const skills = enumerateFstackSkills();
 
   test('at least one skill is discovered (sanity)', () => {
     // If this fails, the enumerator broke, not the collision check.
     expect(skills.length).toBeGreaterThan(10);
   });
 
-  test('no duplicate skill names within gstack', () => {
+  test('no duplicate skill names within fstack', () => {
     const seen = new Map<string, string>();
     const dupes: string[] = [];
     for (const { name, templatePath } of skills) {
@@ -151,7 +151,7 @@ describe('skill-collision-sentinel', () => {
     }
   });
 
-  // Hard check: no gstack skill name collides with a known host built-in
+  // Hard check: no fstack skill name collides with a known host built-in
   // unless the collision is explicitly tolerated. This is the test that
   // would have caught the /checkpoint bug in April 2026.
   for (const [host, builtins] of Object.entries(KNOWN_BUILTINS)) {
@@ -166,7 +166,7 @@ describe('skill-collision-sentinel', () => {
       if (collisions.length > 0) {
         const msg = collisions.map(c =>
           `  /${c.skill} collides with ${host} built-in /${c.builtin}.\n` +
-          `    Fix: rename the gstack skill (precedent: /checkpoint → /context-save+/context-restore),\n` +
+          `    Fix: rename the fstack skill (precedent: /checkpoint → /context-save+/context-restore),\n` +
           `    OR add an entry to KNOWN_COLLISIONS_TOLERATED with a written justification.`
         ).join('\n\n');
         throw new Error(`Found ${collisions.length} unresolved collision(s) with ${host} built-ins:\n\n${msg}`);
@@ -186,7 +186,7 @@ describe('skill-collision-sentinel', () => {
     const stale: string[] = [];
     for (const name of Object.keys(KNOWN_COLLISIONS_TOLERATED)) {
       if (!skillNames.has(name)) {
-        stale.push(`  "${name}" is in KNOWN_COLLISIONS_TOLERATED but no gstack skill has that name — remove the exception`);
+        stale.push(`  "${name}" is in KNOWN_COLLISIONS_TOLERATED but no fstack skill has that name — remove the exception`);
       } else if (!allBuiltins.has(name)) {
         stale.push(`  "${name}" is in KNOWN_COLLISIONS_TOLERATED but no host's KNOWN_BUILTINS lists it — remove the exception`);
       }

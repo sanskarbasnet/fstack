@@ -6,7 +6,7 @@ Check if a CLAUDE.md file exists in the project root. If it does not exist, crea
 
 Use AskUserQuestion:
 
-> gstack works best when your project's CLAUDE.md includes skill routing rules.
+> fstack works best when your project's CLAUDE.md includes skill routing rules.
 
 Options:
 - A) Add routing rules to CLAUDE.md (recommended)
@@ -35,9 +35,9 @@ Key routing rules:
 - Resume context → invoke /context-restore
 \`\`\`
 
-Then commit the change: \`git add CLAUDE.md && git commit -m "chore: add gstack skill routing rules to CLAUDE.md"\`
+Then commit the change: \`git add CLAUDE.md && git commit -m "chore: add fstack skill routing rules to CLAUDE.md"\`
 
-If B: run \`${ctx.paths.binDir}/gstack-config set routing_declined true\` and say they can re-enable with \`gstack-config set routing_declined false\`.
+If B: run \`${ctx.paths.binDir}/fstack-config set routing_declined true\` and say they can re-enable with \`fstack-config set routing_declined false\`.
 
 This only happens once per project. Skip if \`HAS_ROUTING\` is \`yes\` or \`ROUTING_DECLINED\` is \`true\`.`;
 }

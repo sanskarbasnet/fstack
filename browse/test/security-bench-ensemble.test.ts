@@ -9,7 +9,7 @@
  *   - FP rate <= 25% (hard ceiling)
  *
  * Fixture: browse/test/fixtures/security-bench-haiku-responses.json
- * Seeded by: GSTACK_BENCH_ENSEMBLE=1 bun test security-bench-ensemble-live.test.ts
+ * Seeded by: FSTACK_BENCH_ENSEMBLE=1 bun test security-bench-ensemble-live.test.ts
  *
  * Fail-closed rule:
  *   - Fixture present + schema-hash match → replay + assert gates
@@ -153,7 +153,7 @@ describe('BrowseSafe-Bench ensemble gate (fixture replay)', () => {
 
     if (fixtureState === 'missing' && !securityChanged) {
       // Fresh-clone path. Skip with a clear reseeding instruction.
-      console.log('[security-bench-ensemble] fixture missing, no security-layer files changed — skipping. Run `GSTACK_BENCH_ENSEMBLE=1 bun test security-bench-ensemble-live.test.ts` to seed.');
+      console.log('[security-bench-ensemble] fixture missing, no security-layer files changed — skipping. Run `FSTACK_BENCH_ENSEMBLE=1 bun test security-bench-ensemble-live.test.ts` to seed.');
       return;
     }
 
@@ -165,11 +165,11 @@ describe('BrowseSafe-Bench ensemble gate (fixture replay)', () => {
     // Fixture problem AND security-layer files changed → fail-closed.
     if (fixtureState === 'missing') {
       throw new Error(
-        'Fixture browse/test/fixtures/security-bench-haiku-responses.json is missing AND security-layer files were modified in this branch. Run `GSTACK_BENCH_ENSEMBLE=1 bun test browse/test/security-bench-ensemble-live.test.ts` to regenerate the fixture before committing.',
+        'Fixture browse/test/fixtures/security-bench-haiku-responses.json is missing AND security-layer files were modified in this branch. Run `FSTACK_BENCH_ENSEMBLE=1 bun test browse/test/security-bench-ensemble-live.test.ts` to regenerate the fixture before committing.',
       );
     }
     throw new Error(
-      'Fixture schema hash mismatch (model or thresholds changed) AND security-layer files were modified in this branch. Regenerate via `GSTACK_BENCH_ENSEMBLE=1 bun test browse/test/security-bench-ensemble-live.test.ts` to capture fresh Haiku responses for the new configuration.',
+      'Fixture schema hash mismatch (model or thresholds changed) AND security-layer files were modified in this branch. Regenerate via `FSTACK_BENCH_ENSEMBLE=1 bun test browse/test/security-bench-ensemble-live.test.ts` to capture fresh Haiku responses for the new configuration.',
     );
   });
 

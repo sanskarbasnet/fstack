@@ -73,7 +73,7 @@ export interface ClaudePtyOptions {
   /** Terminal size. Default 120x40. Plan-mode UI lays out cleanly at this size. */
   cols?: number;
   rows?: number;
-  /** Working directory. Default: process.cwd(). The repo cwd has the gstack
+  /** Working directory. Default: process.cwd(). The repo cwd has the fstack
    *  skill registry and trusted-folder cookie, so most tests want this. */
   cwd?: string;
   /** Extra env on top of process.env. */
@@ -461,7 +461,7 @@ export type ClassifyResult =
 
 const SANCTIONED_WRITE_SUBSTRINGS = [
   '.claude/plans',
-  '.gstack/',
+  '.fstack/',
   '/.context/',
   'CHANGELOG.md',
   'TODOS.md',
@@ -664,10 +664,10 @@ export function auqFingerprint(
  * stop signal; this regex is the "we're done, go gracefully" hint.
  */
 export const COMPLETION_SUMMARY_RE =
-  /(GSTACK REVIEW REPORT|## Completion [Ss]ummary|Status:\s*(clean|issues_open)|^VERDICT:)/m;
+  /(FSTACK REVIEW REPORT|## Completion [Ss]ummary|Status:\s*(clean|issues_open)|^VERDICT:)/m;
 
 /**
- * Result of asserting that a plan file ends with `## GSTACK REVIEW REPORT`
+ * Result of asserting that a plan file ends with `## FSTACK REVIEW REPORT`
  * as its last `## ` heading. `ok` is true iff the report is present AND no
  * other `## ` heading appears after it. Diagnostic fields are populated only
  * on failure to keep the success path cheap.
@@ -679,7 +679,7 @@ export interface ReviewReportAtBottomResult {
 }
 
 /**
- * Assert that `## GSTACK REVIEW REPORT` is the last `## ` heading in a plan
+ * Assert that `## FSTACK REVIEW REPORT` is the last `## ` heading in a plan
  * file's content. Pure string operation — no filesystem access. Used by the
  * finding-count E2E tests as a second assertion on each test's produced plan.
  *
@@ -691,10 +691,10 @@ export interface ReviewReportAtBottomResult {
 export function assertReviewReportAtBottom(
   content: string,
 ): ReviewReportAtBottomResult {
-  const re = /^## GSTACK REVIEW REPORT\s*$/m;
+  const re = /^## FSTACK REVIEW REPORT\s*$/m;
   const match = re.exec(content);
   if (!match) {
-    return { ok: false, reason: 'no GSTACK REVIEW REPORT section' };
+    return { ok: false, reason: 'no FSTACK REVIEW REPORT section' };
   }
   const after = content.slice(match.index + match[0].length);
   // Match any `## ` heading after the report. Reject `## ` followed by
@@ -705,7 +705,7 @@ export function assertReviewReportAtBottom(
   if (trailingHeadings.length > 0) {
     return {
       ok: false,
-      reason: 'trailing ## heading(s) after GSTACK REVIEW REPORT',
+      reason: 'trailing ## heading(s) after FSTACK REVIEW REPORT',
       trailingHeadings,
     };
   }

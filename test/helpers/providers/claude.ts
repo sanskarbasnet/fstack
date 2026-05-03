@@ -19,11 +19,11 @@ export class ClaudeAdapter implements ProviderAdapter {
   readonly family = 'claude' as const;
 
   async available(): Promise<AvailabilityCheck> {
-    // Binary on PATH (or GSTACK_CLAUDE_BIN override). Routes through the shared
+    // Binary on PATH (or FSTACK_CLAUDE_BIN override). Routes through the shared
     // resolver so Windows + override paths behave the same as production sites.
     const resolved = resolveClaudeCommand();
     if (!resolved) {
-      return { ok: false, reason: 'claude CLI not found on PATH. Install from https://claude.ai/download or npm i -g @anthropic-ai/claude-code (or set GSTACK_CLAUDE_BIN)' };
+      return { ok: false, reason: 'claude CLI not found on PATH. Install from https://claude.ai/download or npm i -g @anthropic-ai/claude-code (or set FSTACK_CLAUDE_BIN)' };
     }
     // Auth sniff: ~/.claude/.credentials.json OR ANTHROPIC_API_KEY
     const credsPath = path.join(os.homedir(), '.claude', '.credentials.json');
@@ -39,7 +39,7 @@ export class ClaudeAdapter implements ProviderAdapter {
     const start = Date.now();
     const resolved = resolveClaudeCommand();
     if (!resolved) {
-      throw new Error('claude CLI not resolvable (set GSTACK_CLAUDE_BIN or install)');
+      throw new Error('claude CLI not resolvable (set FSTACK_CLAUDE_BIN or install)');
     }
     const args = [...resolved.argsPrefix, '-p', '--output-format', 'json'];
     if (opts.model) args.push('--model', opts.model);

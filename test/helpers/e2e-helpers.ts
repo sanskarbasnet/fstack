@@ -143,7 +143,7 @@ export function logCost(label: string, result: { costEstimate: { turnsUsed: numb
  */
 export function dumpOutcomeDiagnostic(dir: string, label: string, report: string, judgeResult: any) {
   try {
-    const transcriptDir = path.join(dir, '.gstack', 'test-transcripts');
+    const transcriptDir = path.join(dir, '.fstack', 'test-transcripts');
     fs.mkdirSync(transcriptDir, { recursive: true });
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     fs.writeFileSync(
@@ -251,10 +251,10 @@ export async function finalizeEvalCollector(evalCollector: EvalCollector | null)
 // Pre-seed preamble state files so E2E tests don't waste turns on lake intro + telemetry prompts.
 // These are one-time interactive prompts that burn 3-7 turns per test if not pre-seeded.
 if (evalsEnabled) {
-  const gstackDir = path.join(os.homedir(), '.gstack');
-  fs.mkdirSync(gstackDir, { recursive: true });
+  const fstackDir = path.join(os.homedir(), '.fstack');
+  fs.mkdirSync(fstackDir, { recursive: true });
   for (const f of ['.completeness-intro-seen', '.telemetry-prompted', '.proactive-prompted']) {
-    const p = path.join(gstackDir, f);
+    const p = path.join(fstackDir, f);
     if (!fs.existsSync(p)) fs.writeFileSync(p, '');
   }
 }

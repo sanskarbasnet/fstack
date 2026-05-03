@@ -1,12 +1,12 @@
-# gstack — AI Engineering Workflow
+# fstack — AI Engineering Workflow
 
-gstack is a collection of SKILL.md files that give AI agents structured roles for
+fstack is a collection of SKILL.md files that give AI agents structured roles for
 software development. Each skill is a specialist: CEO reviewer, eng manager,
 designer, QA lead, release engineer, debugger, and more.
 
 ## Available skills
 
-Skills live in `.agents/skills/` (or `~/.claude/skills/gstack/` on Claude Code).
+Skills live in `.agents/skills/` (or `~/.claude/skills/fstack/` on Claude Code).
 Invoke them by name (e.g., `/office-hours`).
 
 ### Plan-mode reviews
@@ -48,7 +48,7 @@ Invoke them by name (e.g., `/office-hours`).
 | `/landing-report` | Read-only dashboard for the workspace-aware ship queue. |
 | `/document-release` | Update all docs to match what you just shipped. |
 | `/setup-deploy` | One-time deploy config detection (Fly.io, Render, Vercel, etc.). |
-| `/gstack-upgrade` | Update gstack to the latest version. |
+| `/fstack-upgrade` | Update fstack to the latest version. |
 
 ### Operational + memory
 
@@ -56,7 +56,7 @@ Invoke them by name (e.g., `/office-hours`).
 |-------|-------------|
 | `/context-save` | Save working context (git state, decisions, remaining work). |
 | `/context-restore` | Resume from a saved context, even across Conductor workspaces. |
-| `/learn` | Manage what gstack learned across sessions. |
+| `/learn` | Manage what fstack learned across sessions. |
 | `/retro` | Weekly retro with per-person breakdowns and shipping streaks. |
 | `/health` | Code quality dashboard (type checker, linter, tests, dead code). |
 | `/benchmark` | Performance regression detection (page load, Core Web Vitals). |
@@ -69,7 +69,7 @@ Invoke them by name (e.g., `/office-hours`).
 | Skill | What it does |
 |-------|-------------|
 | `/browse` | Headless browser — real Chromium, real clicks, ~100ms/command. |
-| `/open-gstack-browser` | Launch the visible GStack Browser with sidebar + stealth. |
+| `/open-fstack-browser` | Launch the visible GStack Browser with sidebar + stealth. |
 | `/setup-browser-cookies` | Import cookies from your real browser for authenticated testing. |
 | `/pair-agent` | Pair a remote AI agent (OpenClaw, Codex, etc.) with your browser. |
 
@@ -99,8 +99,8 @@ bun run skill:check      # health dashboard for all skills
 - **macOS** + **Linux**: full test suite supported.
 - **Windows**: curated Windows-safe subset runs on `windows-latest` via the
   `windows-free-tests` CI job. Setup script (`./setup`) requires Git Bash or
-  MSYS today; native PowerShell support is a future expansion. The `bin/gstack-paths`
-  helper resolves state roots through `CLAUDE_PLUGIN_DATA` / `GSTACK_HOME` so plugin
+  MSYS today; native PowerShell support is a future expansion. The `bin/fstack-paths`
+  helper resolves state roots through `CLAUDE_PLUGIN_DATA` / `FSTACK_HOME` so plugin
   installs work on every platform.
 
 ## Key conventions
@@ -109,5 +109,5 @@ bun run skill:check      # health dashboard for all skills
 - Run `bun run gen:skill-docs --host codex` to regenerate Codex-specific output.
 - The browse binary provides headless browser access. Use `$B <command>` in skills.
 - Safety skills (careful, freeze, guard) use inline advisory prose — always confirm before destructive operations.
-- State paths resolve via `bin/gstack-paths` (sourced via `eval "$(...)"`). Honors `GSTACK_HOME`, `CLAUDE_PLUGIN_DATA`, `CLAUDE_PLANS_DIR`.
-- The `claude` CLI binary resolves via `browse/src/claude-bin.ts` (`Bun.which()` + `GSTACK_CLAUDE_BIN` override). Set `GSTACK_CLAUDE_BIN=wsl` plus `GSTACK_CLAUDE_BIN_ARGS='["claude"]'` to run Claude through WSL on Windows.
+- State paths resolve via `bin/fstack-paths` (sourced via `eval "$(...)"`). Honors `FSTACK_HOME`, `CLAUDE_PLUGIN_DATA`, `CLAUDE_PLANS_DIR`.
+- The `claude` CLI binary resolves via `browse/src/claude-bin.ts` (`Bun.which()` + `FSTACK_CLAUDE_BIN` override). Set `FSTACK_CLAUDE_BIN=wsl` plus `FSTACK_CLAUDE_BIN_ARGS='["claude"]'` to run Claude through WSL on Windows.

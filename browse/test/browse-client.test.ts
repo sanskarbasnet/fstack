@@ -63,7 +63,7 @@ describe('browse-client', () => {
   beforeEach(async () => {
     server = await startMockServer();
     // Snapshot env we mutate so tests are hermetic.
-    for (const k of ['GSTACK_PORT', 'GSTACK_SKILL_TOKEN', 'BROWSE_STATE_FILE', 'BROWSE_TAB']) {
+    for (const k of ['FSTACK_PORT', 'FSTACK_SKILL_TOKEN', 'BROWSE_STATE_FILE', 'BROWSE_TAB']) {
       origEnv[k] = process.env[k];
       delete process.env[k];
     }
@@ -78,9 +78,9 @@ describe('browse-client', () => {
   });
 
   describe('resolveBrowseAuth', () => {
-    it('uses GSTACK_PORT + GSTACK_SKILL_TOKEN env when present', () => {
-      process.env.GSTACK_PORT = String(server.port);
-      process.env.GSTACK_SKILL_TOKEN = 'scoped-token';
+    it('uses FSTACK_PORT + FSTACK_SKILL_TOKEN env when present', () => {
+      process.env.FSTACK_PORT = String(server.port);
+      process.env.FSTACK_SKILL_TOKEN = 'scoped-token';
       const auth = resolveBrowseAuth();
       expect(auth.port).toBe(server.port);
       expect(auth.token).toBe('scoped-token');

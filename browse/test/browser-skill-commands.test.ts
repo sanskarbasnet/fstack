@@ -30,9 +30,9 @@ beforeEach(() => {
   initRegistry('root-token-for-tests');
   tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-skill-cmd-test-'));
   tiers = {
-    project: path.join(tmpRoot, 'project', '.gstack', 'browser-skills'),
-    global: path.join(tmpRoot, 'home', '.gstack', 'browser-skills'),
-    bundled: path.join(tmpRoot, 'gstack-install', 'browser-skills'),
+    project: path.join(tmpRoot, 'project', '.fstack', 'browser-skills'),
+    global: path.join(tmpRoot, 'home', '.fstack', 'browser-skills'),
+    bundled: path.join(tmpRoot, 'fstack-install', 'browser-skills'),
   };
   fs.mkdirSync(tiers.project!, { recursive: true });
   fs.mkdirSync(tiers.global, { recursive: true });
@@ -170,7 +170,7 @@ describe('buildSpawnEnv', () => {
     process.env.MY_PASSWORD = 'sup3r';
     process.env.NPM_TOKEN = 'npmtok';
     process.env.AWS_SECRET_ACCESS_KEY = 'aws-secret';
-    process.env.GSTACK_TOKEN = 'root-token';
+    process.env.FSTACK_TOKEN = 'root-token';
     process.env.HOME = '/Users/test';
     process.env.PATH = '/test/bin:/usr/bin';
     process.env.LANG = 'en_US.UTF-8';
@@ -187,7 +187,7 @@ describe('buildSpawnEnv', () => {
     expect(env.MY_PASSWORD).toBeUndefined();
     expect(env.NPM_TOKEN).toBeUndefined();
     expect(env.AWS_SECRET_ACCESS_KEY).toBeUndefined();
-    expect(env.GSTACK_TOKEN).toBeUndefined();
+    expect(env.FSTACK_TOKEN).toBeUndefined();
   });
 
   it('untrusted: keeps locale + TERM', () => {
@@ -203,10 +203,10 @@ describe('buildSpawnEnv', () => {
     expect(env.PATH).toMatch(/\/(usr\/local\/)?bin/);
   });
 
-  it('untrusted: injects GSTACK_PORT + GSTACK_SKILL_TOKEN', () => {
+  it('untrusted: injects FSTACK_PORT + FSTACK_SKILL_TOKEN', () => {
     const env = buildSpawnEnv({ trusted: false, port: 1234, skillToken: 'tok-xyz' });
-    expect(env.GSTACK_PORT).toBe('1234');
-    expect(env.GSTACK_SKILL_TOKEN).toBe('tok-xyz');
+    expect(env.FSTACK_PORT).toBe('1234');
+    expect(env.FSTACK_SKILL_TOKEN).toBe('tok-xyz');
   });
 
   it('trusted: keeps $HOME', () => {
@@ -214,9 +214,9 @@ describe('buildSpawnEnv', () => {
     expect(env.HOME).toBe('/Users/test');
   });
 
-  it('trusted: still strips GSTACK_TOKEN (defense in depth)', () => {
+  it('trusted: still strips FSTACK_TOKEN (defense in depth)', () => {
     const env = buildSpawnEnv({ trusted: true, port: 1234, skillToken: 'tok' });
-    expect(env.GSTACK_TOKEN).toBeUndefined();
+    expect(env.FSTACK_TOKEN).toBeUndefined();
   });
 
   it('trusted: keeps developer secrets (intentional)', () => {
@@ -224,12 +224,12 @@ describe('buildSpawnEnv', () => {
     expect(env.GITHUB_TOKEN).toBe('gh-secret');
   });
 
-  it('GSTACK_PORT/GSTACK_SKILL_TOKEN can never be overridden by parent env', () => {
-    process.env.GSTACK_PORT = '99999'; // attacker-set
-    process.env.GSTACK_SKILL_TOKEN = 'attacker-tok';
+  it('FSTACK_PORT/FSTACK_SKILL_TOKEN can never be overridden by parent env', () => {
+    process.env.FSTACK_PORT = '99999'; // attacker-set
+    process.env.FSTACK_SKILL_TOKEN = 'attacker-tok';
     const env = buildSpawnEnv({ trusted: true, port: 1234, skillToken: 'real-tok' });
-    expect(env.GSTACK_PORT).toBe('1234');
-    expect(env.GSTACK_SKILL_TOKEN).toBe('real-tok');
+    expect(env.FSTACK_PORT).toBe('1234');
+    expect(env.FSTACK_SKILL_TOKEN).toBe('real-tok');
   });
 });
 
@@ -264,20 +264,20 @@ describe.skipIf(SKIP_SPAWN)('spawnSkill: lifecycle', () => {
     expect(listTokens().filter(t => t.clientId.startsWith('skill:echo-skill:'))).toEqual([]);
   });
 
-  it('untrusted spawn: GSTACK_SKILL_TOKEN visible, root env scrubbed', async () => {
+  it('untrusted spawn: FSTACK_SKILL_TOKEN visible, root env scrubbed', async () => {
     const dir = makeSkillDir(tiers.bundled, 'env-probe',
       'name: env-probe\nhost: x.com',  // trusted defaults to false
       `console.log(JSON.stringify({
-        port: process.env.GSTACK_PORT,
-        token: process.env.GSTACK_SKILL_TOKEN,
+        port: process.env.FSTACK_PORT,
+        token: process.env.FSTACK_SKILL_TOKEN,
         home: process.env.HOME ?? null,
         gh: process.env.GITHUB_TOKEN ?? null,
-        gstack: process.env.GSTACK_TOKEN ?? null,
+        fstack: process.env.FSTACK_TOKEN ?? null,
       }));`,
     );
     const origEnv = { ...process.env };
     process.env.GITHUB_TOKEN = 'gh-secret';
-    process.env.GSTACK_TOKEN = 'root';
+    process.env.FSTACK_TOKEN = 'root';
     try {
       const skill = readBrowserSkill('env-probe', tiers)!;
       const result = await spawnSkill({
@@ -289,7 +289,7 @@ describe.skipIf(SKIP_SPAWN)('spawnSkill: lifecycle', () => {
       expect(parsed.token).toMatch(/^gsk_sess_/);
       expect(parsed.home).toBeNull();
       expect(parsed.gh).toBeNull();
-      expect(parsed.gstack).toBeNull();
+      expect(parsed.fstack).toBeNull();
     } finally {
       process.env = origEnv;
     }

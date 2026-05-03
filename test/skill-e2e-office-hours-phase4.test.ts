@@ -63,7 +63,7 @@ function setupOfficeHoursDir(): string {
 
 We're building a retrieval surface for gbrain so cross-skill memory works
 end-to-end. There are three architectural shapes worth considering: server-side
-(gbrain ships the smarts), client-side (gstack ships the smarts), and a hybrid
+(gbrain ships the smarts), client-side (fstack ships the smarts), and a hybrid
 that ships V1 client-side and promotes to gbrain in V1.5.
 `);
   run('git', ['add', '.']);
@@ -123,8 +123,8 @@ Context: this is BUILDER MODE (Path B). The project is gbrain-retrieval — see 
 
 Proceed directly to Phase 4 (Alternatives Generation). Generate 2-3 distinct architectural approaches that differ in KIND (not in coverage). Realistic shapes for this project:
   A) Server-side: gbrain ships the retrieval smarts as new MCP tools (e.g. get_recent_salience, find_anomalies).
-  B) Client-side: gstack ships a helper (bin/gstack-brain-context-load) that composes salience client-side from existing MCP tools.
-  C) Hybrid: V1 client-side in gstack; V1.5 promotes to gbrain server-side once the salience signal is validated.
+  B) Client-side: fstack ships a helper (bin/fstack-brain-context-load) that composes salience client-side from existing MCP tools.
+  C) Hybrid: V1 client-side in fstack; V1.5 promotes to gbrain server-side once the salience signal is validated.
 
 Do not skip Phase 4 — the test depends on you reaching it.
 

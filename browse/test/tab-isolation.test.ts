@@ -252,7 +252,7 @@ describe('pair-agent CLI behavior', () => {
     expect(pairBlock).toContain('const browseBin = process.execPath');
   });
 
-  it('isNgrokAvailable checks gstack env, NGROK_AUTHTOKEN, and native config', () => {
+  it('isNgrokAvailable checks fstack env, NGROK_AUTHTOKEN, and native config', () => {
     const ngrokBlock = CLI_SRC.slice(
       CLI_SRC.indexOf('function isNgrokAvailable'),
       CLI_SRC.indexOf('// ─── Pair-Agent DX')

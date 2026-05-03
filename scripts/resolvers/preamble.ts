@@ -11,8 +11,8 @@
  * telemetry.
  *
  * Telemetry data flow:
- *   1. Always: local JSONL append to ~/.gstack/analytics/ (inline, inspectable)
- *   2. If _TEL != "off" AND binary exists: gstack-telemetry-log for remote reporting
+ *   1. Always: local JSONL append to ~/.fstack/analytics/ (inline, inspectable)
+ *   2. If _TEL != "off" AND binary exists: fstack-telemetry-log for remote reporting
  */
 
 

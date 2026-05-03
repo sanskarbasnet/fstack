@@ -303,7 +303,7 @@ describe('context-restore: find + sort + head cap', () => {
     // NOT have that behavior. Running from a dir with many .md files.
     const out = runBash(RESTORE_FIND_BASH, {
       CHECKPOINT_DIR: tmp,
-      // Intentionally: working directory is the gstack repo which has many .md files.
+      // Intentionally: working directory is the fstack repo which has many .md files.
     }).stdout;
     expect(out.trim()).toBe('NO_CHECKPOINTS');
     // Must NOT contain any .md filename from cwd.
@@ -316,13 +316,13 @@ describe('context-restore: find + sort + head cap', () => {
 
 describe('migration v1.1.3.0: HOME guard', () => {
   let tmp: string;
-  const MIGRATION = path.join(ROOT, 'gstack-upgrade', 'migrations', 'v1.1.3.0.sh');
+  const MIGRATION = path.join(ROOT, 'fstack-upgrade', 'migrations', 'v1.1.3.0.sh');
 
   beforeEach(() => { tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ctx-home-')); });
   afterEach(() => { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {} });
 
   test('HOME unset → exits 0 with diagnostic, no filesystem changes', () => {
-    // Create a file that would be wiped by an HOME="" bug: /.claude/skills/gstack/checkpoint
+    // Create a file that would be wiped by an HOME="" bug: /.claude/skills/fstack/checkpoint
     // (not actually writable by the test, but we verify the script doesn't TRY).
     // Spawn without HOME in env.
     const env = { PATH: process.env.PATH || '/usr/bin:/bin' } as Record<string, string>;

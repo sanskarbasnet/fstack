@@ -36,7 +36,7 @@ import {
 // Check if TestSavantAI model cache exists. If missing, ML tests skip.
 const MODEL_CACHE = path.join(
   os.homedir(),
-  '.gstack',
+  '.fstack',
   'models',
   'testsavant-small',
   'onnx',

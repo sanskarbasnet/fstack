@@ -1,8 +1,8 @@
 /**
- * gstack CLI — thin wrapper that talks to the persistent server
+ * fstack CLI — thin wrapper that talks to the persistent server
  *
  * Flow:
- *   1. Read .gstack/browse.json for port + token
+ *   1. Read .fstack/browse.json for port + token
  *   2. If missing or stale PID → start server in background
  *   3. Health check + version mismatch detection
  *   4. Send command via HTTP POST
@@ -163,7 +163,7 @@ async function killServer(pid: number): Promise<void> {
  * Verifies PID ownership before sending signals.
  */
 function cleanupLegacyState(): void {
-  // No legacy state on Windows — /tmp and `ps` don't exist, and gstack
+  // No legacy state on Windows — /tmp and `ps` don't exist, and fstack
   // never ran on Windows before the Node.js fallback was added.
   if (IS_WINDOWS) return;
 
@@ -327,7 +327,7 @@ async function ensureServer(): Promise<ServerState> {
   // fail fast with a clear error instead of silently starting a new one.
   if (process.env.BROWSE_NO_AUTOSTART === '1') {
     console.error('[browse] Server not available and BROWSE_NO_AUTOSTART is set.');
-    console.error('[browse] The headed browser may have been closed. Run /open-gstack-browser to restart.');
+    console.error('[browse] The headed browser may have been closed. Run /open-fstack-browser to restart.');
     process.exit(1);
   }
 
@@ -336,7 +336,7 @@ async function ensureServer(): Promise<ServerState> {
   // Silently replacing it would be confusing — tell the user to reconnect.
   if (state && state.mode === 'headed' && isProcessAlive(state.pid)) {
     console.error(`[browse] Headed server running (PID ${state.pid}) but not responding.`);
-    console.error(`[browse] Run '/open-gstack-browser' to restart.`);
+    console.error(`[browse] Run '/open-fstack-browser' to restart.`);
     process.exit(1);
   }
 
@@ -468,10 +468,10 @@ async function sendCommand(state: ServerState, command: string, args: string[], 
 
 // ─── Ngrok Detection ───────────────────────────────────────────
 
-/** Check if ngrok is installed and authenticated (native config or gstack env). */
+/** Check if ngrok is installed and authenticated (native config or fstack env). */
 function isNgrokAvailable(): boolean {
-  // Check gstack's own ngrok env
-  const ngrokEnvPath = path.join(process.env.HOME || '/tmp', '.gstack', 'ngrok.env');
+  // Check fstack's own ngrok env
+  const ngrokEnvPath = path.join(process.env.HOME || '/tmp', '.fstack', 'ngrok.env');
   if (fs.existsSync(ngrokEnvPath)) return true;
 
   // Check NGROK_AUTHTOKEN env var
@@ -711,7 +711,7 @@ async function handlePairAgent(state: ServerState, args: string[]): Promise<void
     try {
       // Resolve host config for the globalRoot path
       const hostsPath = path.resolve(__dirname, '..', '..', 'hosts', 'index.ts');
-      let globalRoot = `.${localHost}/skills/gstack`;
+      let globalRoot = `.${localHost}/skills/fstack`;
       try {
         const { getHostConfig } = await import(hostsPath);
         const hostConfig = getHostConfig(localHost);
@@ -754,7 +754,7 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`gstack browse — Fast headless browser for AI coding agents
+    console.log(`fstack browse — Fast headless browser for AI coding agents
 
 Usage: browse <command> [args...]
 
@@ -828,7 +828,7 @@ Refs:           After 'snapshot', use @e1, @e2... as selectors:
     // Kill orphaned Chromium processes that may still hold the profile lock.
     // The server PID is the Bun process; Chromium is a child that can outlive it
     // if the server is killed abruptly (SIGKILL, crash, manual rm of state file).
-    const profileDir = path.join(process.env.HOME || '/tmp', '.gstack', 'chromium-profile');
+    const profileDir = path.join(process.env.HOME || '/tmp', '.fstack', 'chromium-profile');
     try {
       const singletonLock = path.join(profileDir, 'SingletonLock');
       const lockTarget = fs.readlinkSync(singletonLock); // e.g. "hostname-12345"
@@ -963,7 +963,7 @@ Refs:           After 'snapshot', use @e1, @e2... as selectors:
       }
     }
     // Clean profile locks and state file
-    const profileDir = path.join(process.env.HOME || '/tmp', '.gstack', 'chromium-profile');
+    const profileDir = path.join(process.env.HOME || '/tmp', '.fstack', 'chromium-profile');
     for (const lockFile of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) {
       safeUnlinkQuiet(path.join(profileDir, lockFile));
     }

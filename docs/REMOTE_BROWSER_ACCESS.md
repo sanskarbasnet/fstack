@@ -58,7 +58,7 @@ Authorization: Bearer gsk_sess_...
 
 `/connect` is unauthenticated (rate-limited) — it's how a remote agent exchanges a setup key for a scoped session token. `/health` is unauthenticated on the local listener (bootstrap) but does NOT exist on the tunnel listener (404).
 
-SSE endpoints (`/activity/stream`, `/inspector/events`) accept either a Bearer token or the HttpOnly `gstack_sse` cookie (minted via `POST /sse-session`, 30-minute TTL, stream-scope only — cannot be used against `/command`). As of v1.6.0.0 the `?token=<ROOT>` query-string auth is no longer accepted.
+SSE endpoints (`/activity/stream`, `/inspector/events`) accept either a Bearer token or the HttpOnly `fstack_sse` cookie (minted via `POST /sse-session`, 30-minute TTL, stream-scope only — cannot be used against `/command`). As of v1.6.0.0 the `?token=<ROOT>` query-string auth is no longer accepted.
 
 ### Endpoints
 
@@ -173,9 +173,9 @@ Each agent owns the tabs it creates. Rules:
 - **Admin scope** (JS execution, cookie access) is denied by default.
 - Tokens can be revoked instantly: `$B tunnel revoke agent-name`
 - **SSE auth** uses a 30-minute HttpOnly SameSite=Strict cookie, stream-scope only (never valid against `/command`).
-- **Path traversal guarded** on `/welcome` — `GSTACK_SLUG` must match `^[a-z0-9_-]+$` or falls back to the built-in template.
+- **Path traversal guarded** on `/welcome` — `FSTACK_SLUG` must match `^[a-z0-9_-]+$` or falls back to the built-in template.
 - **SSRF guards** on `goto`, `download`, and scrape paths — validates URL target against a localhost/private-range blocklist.
-- **Tunnel surface denial logging.** Every rejection on the tunnel listener (`path_not_on_tunnel`, `root_token_on_tunnel`, `missing_scoped_token`, `disallowed_command:*`) is appended to `~/.gstack/security/attempts.jsonl` with timestamp, source IP, path, method. Rate-capped at 60 writes/min.
+- **Tunnel surface denial logging.** Every rejection on the tunnel listener (`path_not_on_tunnel`, `root_token_on_tunnel`, `missing_scoped_token`, `disallowed_command:*`) is appended to `~/.fstack/security/attempts.jsonl` with timestamp, source IP, path, method. Rate-capped at 60 writes/min.
 - All agent activity is logged with attribution (clientId).
 
 **Known non-goal (tracked as #1136):** on Windows, the cookie-import-browser path launches Chrome with `--remote-debugging-port=<random>`. With App-Bound Encryption v20, a same-user local process can connect to that port and exfiltrate decrypted v20 cookies — an elevation path relative to reading the SQLite DB directly. Fix direction is `--remote-debugging-pipe` instead of TCP.
@@ -185,9 +185,9 @@ Each agent owns the tabs it creates. Rules:
 If both agents are on the same machine, skip the copy-paste:
 
 ```bash
-$B pair-agent --local openclaw    # writes to ~/.openclaw/skills/gstack/browse-remote.json
-$B pair-agent --local codex       # writes to ~/.codex/skills/gstack/browse-remote.json
-$B pair-agent --local cursor      # writes to ~/.cursor/skills/gstack/browse-remote.json
+$B pair-agent --local openclaw    # writes to ~/.openclaw/skills/fstack/browse-remote.json
+$B pair-agent --local codex       # writes to ~/.codex/skills/fstack/browse-remote.json
+$B pair-agent --local cursor      # writes to ~/.cursor/skills/fstack/browse-remote.json
 ```
 
 No tunnel needed. Uses localhost directly.
@@ -198,7 +198,7 @@ For remote agents on different machines:
 
 1. Sign up at [ngrok.com](https://ngrok.com) (free tier works)
 2. Copy your auth token from the dashboard
-3. Save it: `echo 'NGROK_AUTHTOKEN=your_token' > ~/.gstack/ngrok.env`
-4. Optionally claim a stable domain: `echo 'NGROK_DOMAIN=your-name.ngrok-free.dev' >> ~/.gstack/ngrok.env`
+3. Save it: `echo 'NGROK_AUTHTOKEN=your_token' > ~/.fstack/ngrok.env`
+4. Optionally claim a stable domain: `echo 'NGROK_DOMAIN=your-name.ngrok-free.dev' >> ~/.fstack/ngrok.env`
 5. Start with tunnel: `BROWSE_TUNNEL=1 $B restart`
 6. Run `$B pair-agent` — it will use the tunnel URL automatically

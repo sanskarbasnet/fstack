@@ -170,7 +170,7 @@ export class RateLimitExhaustedError extends Error {
  * process so that bun's --concurrent flag does not compound with in-test
  * concurrency to blow past Anthropic's rate limits.
  *
- * Default capacity 3. Override via GSTACK_SDK_MAX_CONCURRENCY env var.
+ * Default capacity 3. Override via FSTACK_SDK_MAX_CONCURRENCY env var.
  */
 class Semaphore {
   private available: number;
@@ -200,7 +200,7 @@ class Semaphore {
   }
 }
 
-const DEFAULT_SDK_CONCURRENCY = Number(process.env.GSTACK_SDK_MAX_CONCURRENCY ?? 3);
+const DEFAULT_SDK_CONCURRENCY = Number(process.env.FSTACK_SDK_MAX_CONCURRENCY ?? 3);
 let _apiSemaphore: Semaphore | null = null;
 function getApiSemaphore(): Semaphore {
   if (!_apiSemaphore) _apiSemaphore = new Semaphore(DEFAULT_SDK_CONCURRENCY);

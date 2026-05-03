@@ -3,8 +3,8 @@
  * alongside /learn's per-project learnings as type:"domain" rows.
  *
  * Scope:
- *   - per-project: ~/.gstack/projects/<slug>/learnings.jsonl
- *   - global:      ~/.gstack/global-domain-skills.jsonl
+ *   - per-project: ~/.fstack/projects/<slug>/learnings.jsonl
+ *   - global:      ~/.fstack/global-domain-skills.jsonl
  *
  * State machine (T6 — defense against persistent prompt poisoning):
  *
@@ -62,16 +62,16 @@ export interface DomainSkillRow {
 
 const PROMOTE_THRESHOLD = 3;
 
-function gstackHome(): string {
-  return process.env.GSTACK_HOME || path.join(os.homedir(), '.gstack');
+function fstackHome(): string {
+  return process.env.FSTACK_HOME || path.join(os.homedir(), '.fstack');
 }
 
 function globalFile(): string {
-  return path.join(gstackHome(), 'global-domain-skills.jsonl');
+  return path.join(fstackHome(), 'global-domain-skills.jsonl');
 }
 
 function projectFile(slug: string): string {
-  return path.join(gstackHome(), 'projects', slug, 'learnings.jsonl');
+  return path.join(fstackHome(), 'projects', slug, 'learnings.jsonl');
 }
 
 // ─── Hostname normalization (T3) ──────────────────────────────

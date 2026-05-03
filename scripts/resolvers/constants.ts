@@ -1,7 +1,7 @@
 // ─── Shared Design Constants ────────────────────────────────
 
 /**
- * gstack's AI slop anti-patterns — shared between DESIGN_METHODOLOGY and DESIGN_HARD_RULES.
+ * fstack's AI slop anti-patterns — shared between DESIGN_METHODOLOGY and DESIGN_HARD_RULES.
  *
  * Overused fonts worth calling out in templates (not a pattern to blacklist, but a
  * convergence risk): Inter, Roboto, Arial, Helvetica, Open Sans, Lato, Montserrat,

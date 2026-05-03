@@ -11,7 +11,7 @@ This plan exists because of **[Louise de Sadeleer](https://x.com/LouiseDSadeleer
 
 ## Problem
 
-Louise's fatigue reading gstack review output came from two sources:
+Louise's fatigue reading fstack review output came from two sources:
 
 1. **Jargon density** — technical terms appeared without explanation. *Addressed in V1 (ELI10 writing).*
 2. **Interruption volume** — `/autoplan` ran 4 phases (CEO + Design + Eng + DX), each with 5–10 AskUserQuestion prompts. Total ≈ 30–50 prompts over ~45 minutes. Non-technical users check out at ~10–15 interruptions. **This is V1.1.**
@@ -35,7 +35,7 @@ During V1 planning, a pacing workstream was drafted: rank findings, auto-accept 
 
 ## Scope for V1.1
 
-1. **Define session-state model.** Per-skill-invocation vs per-phase vs per-conversation. Backing store: likely a JSON file at `~/.gstack/sessions/<session_id>/pacing-state.json` that records which findings surfaced vs. auto-accepted per phase. Cleanup: same TTL as existing session tracking in preamble.
+1. **Define session-state model.** Per-skill-invocation vs per-phase vs per-conversation. Backing store: likely a JSON file at `~/.fstack/sessions/<session_id>/pacing-state.json` that records which findings surfaced vs. auto-accepted per phase. Cleanup: same TTL as existing session tracking in preamble.
 
 2. **Add `phase` field to question-log.jsonl schema.** Classify each AskUserQuestion by which review phase it came from (CEO / Design / Eng / DX / other). Migration: existing entries default to `"unknown"`. Non-breaking schema extension.
 
@@ -43,9 +43,9 @@ During V1 planning, a pacing workstream was drafted: rank findings, auto-accept 
    - (a) Widen `scripts/question-registry.ts` to allow runtime registration (ad-hoc IDs still get logged + classified).
    - (b) Add a secondary runtime classifier `scripts/finding-classifier.ts` that maps finding text → risk tier using pattern matching.
 
-4. **Move pacing from preamble prose into skill-template control flow.** Update each review skill template to: (i) internally complete the phase, (ii) rank findings with the `gstack-pacing-rank` binary, (iii) emit up to 3 AskUserQuestion prompts, (iv) emit Silent Decisions block with the rest. Not a preamble rule — explicit sequence in each template.
+4. **Move pacing from preamble prose into skill-template control flow.** Update each review skill template to: (i) internally complete the phase, (ii) rank findings with the `fstack-pacing-rank` binary, (iii) emit up to 3 AskUserQuestion prompts, (iv) emit Silent Decisions block with the rest. Not a preamble rule — explicit sequence in each template.
 
-5. **Flip mechanism implementation.** New binary `bin/gstack-flip-decision`. Command parser accepts `flip <id>` from user message. Looks up the original decision in pacing-state.json. Re-opens as an explicit AskUserQuestion. New choice persists.
+5. **Flip mechanism implementation.** New binary `bin/fstack-flip-decision`. Command parser accepts `flip <id>` from user message. Looks up the original decision in pacing-state.json. Re-opens as an explicit AskUserQuestion. New choice persists.
 
 6. **Migration-prompt budget decision.** Explicit rule: one-shot migration prompts are exempt from the per-phase interruption budget. Rationale: they fire before review phases start, not during.
 

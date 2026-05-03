@@ -1,7 +1,7 @@
 /**
  * browser-skills storage tests — covers the 3-tier walk, frontmatter parsing,
  * tombstone semantics. Uses tmp dirs for hermetic isolation; never touches
- * real ~/.gstack/ or the gstack install.
+ * real ~/.fstack/ or the fstack install.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
@@ -22,9 +22,9 @@ let tiers: TierPaths;
 beforeEach(() => {
   tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-skills-test-'));
   tiers = {
-    project: path.join(tmpRoot, 'project', '.gstack', 'browser-skills'),
-    global: path.join(tmpRoot, 'home', '.gstack', 'browser-skills'),
-    bundled: path.join(tmpRoot, 'gstack-install', 'browser-skills'),
+    project: path.join(tmpRoot, 'project', '.fstack', 'browser-skills'),
+    global: path.join(tmpRoot, 'home', '.fstack', 'browser-skills'),
+    bundled: path.join(tmpRoot, 'fstack-install', 'browser-skills'),
   };
   fs.mkdirSync(tiers.project!, { recursive: true });
   fs.mkdirSync(tiers.global, { recursive: true });

@@ -65,10 +65,10 @@ describe('pty-session-cookie: mint/validate/revoke', () => {
     expect(buildPtyClearCookie()).toContain('Max-Age=0');
   });
 
-  test('extractPtyCookie reads gstack_pty from a Cookie header', () => {
+  test('extractPtyCookie reads fstack_pty from a Cookie header', () => {
     const { token } = mintPtySessionToken();
     const req = new Request('http://127.0.0.1/ws', {
-      headers: { 'cookie': `othercookie=foo; gstack_pty=${token}; baz=qux` },
+      headers: { 'cookie': `othercookie=foo; fstack_pty=${token}; baz=qux` },
     });
     expect(extractPtyCookie(req)).toBe(token);
   });
@@ -102,7 +102,7 @@ describe('Source-level guard: /health does NOT surface ptyToken', () => {
     // The /health JSON.stringify body must not mention the cookie token.
     // It's allowed to include `terminalPort` (a port number, not auth).
     expect(slice).not.toContain('ptyToken');
-    expect(slice).not.toContain('gstack_pty');
+    expect(slice).not.toContain('fstack_pty');
     expect(slice).toContain('terminalPort');
   });
 });
@@ -125,19 +125,19 @@ describe('Source-level guard: terminal-agent', () => {
   test('validates the session token against an in-memory token set', () => {
     const wsHandler = AGENT_SRC.slice(AGENT_SRC.indexOf("if (url.pathname === '/ws')"));
     // Two transports: Sec-WebSocket-Protocol (preferred for browsers) and
-    // Cookie gstack_pty (fallback). Both verify against validTokens.
+    // Cookie fstack_pty (fallback). Both verify against validTokens.
     expect(wsHandler).toContain('sec-websocket-protocol');
-    expect(wsHandler).toContain('gstack_pty');
+    expect(wsHandler).toContain('fstack_pty');
     expect(wsHandler).toContain('validTokens.has');
   });
 
-  test('Sec-WebSocket-Protocol auth: strips gstack-pty. prefix and echoes back', () => {
+  test('Sec-WebSocket-Protocol auth: strips fstack-pty. prefix and echoes back', () => {
     const wsHandler = AGENT_SRC.slice(AGENT_SRC.indexOf("if (url.pathname === '/ws')"));
-    // Browsers send `Sec-WebSocket-Protocol: gstack-pty.<token>`. The agent
+    // Browsers send `Sec-WebSocket-Protocol: fstack-pty.<token>`. The agent
     // must strip the prefix before checking validTokens, AND echo the
     // protocol back in the upgrade response — without the echo, the
     // browser closes the connection immediately.
-    expect(wsHandler).toContain("'gstack-pty.'");
+    expect(wsHandler).toContain("'fstack-pty.'");
     expect(wsHandler).toContain('Sec-WebSocket-Protocol');
     expect(wsHandler).toContain('acceptedProtocol');
   });
@@ -189,7 +189,7 @@ describe('Source-level guard: terminal-agent', () => {
     expect(AGENT_SRC).toContain('function buildTabAwarenessHint');
     const hint = AGENT_SRC.slice(AGENT_SRC.indexOf('function buildTabAwarenessHint'));
     // The hint must mention the live state files and the fanout command —
-    // those are the two affordances that distinguish a gstack-PTY claude
+    // those are the two affordances that distinguish a fstack-PTY claude
     // from a plain `claude` session.
     expect(hint).toContain('tabs.json');
     expect(hint).toContain('active-tab.json');

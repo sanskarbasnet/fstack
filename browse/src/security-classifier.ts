@@ -38,7 +38,7 @@ import { resolveClaudeCommand } from './claude-bin';
  * alias. Fixture-replay bench encodes this value in its schema hash so a model
  * bump invalidates the fixture and forces a fresh live measurement.
  *
- * To upgrade: bump this string, run `GSTACK_BENCH_ENSEMBLE=1 bun test
+ * To upgrade: bump this string, run `FSTACK_BENCH_ENSEMBLE=1 bun test
  * security-bench-ensemble-live.test.ts`, commit the new fixture + model bump
  * together with a CHANGELOG entry citing the new measured FP/detection numbers.
  */
@@ -51,7 +51,7 @@ export const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
  *
  * The HuggingFace repo stores model.onnx at the root, but @huggingface/transformers
  * v4 expects it under an `onnx/` subdirectory. We stage the files into the expected
- * layout at ~/.gstack/models/testsavant-small/ on first use.
+ * layout at ~/.fstack/models/testsavant-small/ on first use.
  *
  * Files (fetched from HF on first use, cached for lifetime of install):
  *   config.json
@@ -61,7 +61,7 @@ export const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
  *   vocab.txt
  *   onnx/model.onnx  (~112MB)
  */
-const MODELS_DIR = path.join(os.homedir(), '.gstack', 'models');
+const MODELS_DIR = path.join(os.homedir(), '.fstack', 'models');
 const TESTSAVANT_DIR = path.join(MODELS_DIR, 'testsavant-small');
 const TESTSAVANT_HF_URL = 'https://huggingface.co/testsavantai/prompt-injection-defender-small-v0-onnx/resolve/main';
 const TESTSAVANT_FILES = [
@@ -79,7 +79,7 @@ const TESTSAVANT_FILES = [
 // alone.
 //
 // Size: model.onnx is 721MB (FP32). Users opt in via
-// GSTACK_SECURITY_ENSEMBLE=deberta. Not forced on every install because
+// FSTACK_SECURITY_ENSEMBLE=deberta. Not forced on every install because
 // most users won't need the higher recall and 721MB download is a lot.
 const DEBERTA_DIR = path.join(MODELS_DIR, 'deberta-v3-injection');
 const DEBERTA_HF_URL = 'https://huggingface.co/protectai/deberta-v3-base-injection-onnx/resolve/main';
@@ -93,7 +93,7 @@ const DEBERTA_FILES = [
 ];
 
 function isDebertaEnabled(): boolean {
-  const setting = (process.env.GSTACK_SECURITY_ENSEMBLE ?? '').toLowerCase();
+  const setting = (process.env.FSTACK_SECURITY_ENSEMBLE ?? '').toLowerCase();
   return setting.split(',').map(s => s.trim()).includes('deberta');
 }
 
@@ -187,9 +187,9 @@ async function ensureTestsavantStaged(onProgress?: (msg: string) => void): Promi
 let loadPromise: Promise<void> | null = null;
 
 export function loadTestsavant(onProgress?: (msg: string) => void): Promise<void> {
-  if (process.env.GSTACK_SECURITY_OFF === '1') {
+  if (process.env.FSTACK_SECURITY_OFF === '1') {
     testsavantState = 'failed';
-    testsavantLoadError = 'GSTACK_SECURITY_OFF=1 — ML classifier kill switch engaged';
+    testsavantLoadError = 'FSTACK_SECURITY_OFF=1 — ML classifier kill switch engaged';
     return Promise.resolve();
   }
   if (testsavantState === 'loaded') return Promise.resolve();
@@ -317,7 +317,7 @@ async function ensureDebertaStaged(onProgress?: (msg: string) => void): Promise<
 
 let debertaLoadPromise: Promise<void> | null = null;
 export function loadDeberta(onProgress?: (msg: string) => void): Promise<void> {
-  if (process.env.GSTACK_SECURITY_OFF === '1') return Promise.resolve();
+  if (process.env.FSTACK_SECURITY_OFF === '1') return Promise.resolve();
   if (!isDebertaEnabled()) return Promise.resolve();
   if (debertaState === 'loaded') return Promise.resolve();
   if (debertaLoadPromise) return debertaLoadPromise;
@@ -493,7 +493,7 @@ export async function checkTranscript(params: {
   return new Promise((resolve) => {
     // CRITICAL: spawn from a project-free CWD. `claude -p` loads CLAUDE.md
     // from its working directory into the prompt context. If it runs in a
-    // repo with a prompt-injection-defense CLAUDE.md (like gstack itself),
+    // repo with a prompt-injection-defense CLAUDE.md (like fstack itself),
     // Haiku reads "we have a strict security classifier" and responds with
     // meta-commentary instead of classifying the input — we measured 100%
     // timeout rate in the v1.5.2.0 ensemble bench because of this, plus
@@ -558,10 +558,10 @@ export async function checkTranscript(params: {
     // long tail reliably; the stream handler runs this in parallel with
     // content scan so wall-clock impact on the sidebar is bounded by the
     // slower of the two (usually testsavant finishes first anyway).
-    // Env var GSTACK_HAIKU_TIMEOUT_MS (milliseconds) overrides for benches
+    // Env var FSTACK_HAIKU_TIMEOUT_MS (milliseconds) overrides for benches
     // that want a different budget.
-    const timeoutMs = process.env.GSTACK_HAIKU_TIMEOUT_MS
-      ? Number(process.env.GSTACK_HAIKU_TIMEOUT_MS)
+    const timeoutMs = process.env.FSTACK_HAIKU_TIMEOUT_MS
+      ? Number(process.env.FSTACK_HAIKU_TIMEOUT_MS)
       : 45000;
     setTimeout(() => {
       try { p.kill('SIGTERM'); } catch {}

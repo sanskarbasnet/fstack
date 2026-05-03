@@ -102,12 +102,12 @@ describe('transcript classifier tool_output parameter', () => {
   // no production caller (a separate v1.1+ cleanup TODO).
 });
 
-describe('GSTACK_SECURITY_OFF kill switch', () => {
+describe('FSTACK_SECURITY_OFF kill switch', () => {
   test('loadTestsavant honors env var early', () => {
     const src = fs.readFileSync(
       path.join(REPO_ROOT, 'browse', 'src', 'security-classifier.ts'),
       'utf-8',
     );
-    expect(src).toContain("process.env.GSTACK_SECURITY_OFF === '1'");
+    expect(src).toContain("process.env.FSTACK_SECURITY_OFF === '1'");
   });
 });

@@ -1,7 +1,7 @@
 /**
  * Atomic-write helper for agent-authored browser-skills (D3 from Phase 2 plan).
  *
- * /skillify stages a candidate skill into ~/.gstack/.tmp/skillify-<spawnId>/,
+ * /skillify stages a candidate skill into ~/.fstack/.tmp/skillify-<spawnId>/,
  * runs $B skill test against it, and only renames the directory into its final
  * tier path on success + user approval. On failure or rejection, the staged
  * directory is removed entirely — no half-written skill ever appears in
@@ -57,7 +57,7 @@ export interface StageSkillOptions {
 
 /**
  * Stage a skill into the staging tree:
- *   <tmpRoot>/.gstack/.tmp/skillify-<spawnId>/<name>/
+ *   <tmpRoot>/.fstack/.tmp/skillify-<spawnId>/<name>/
  *
  * The leaf <name> directory is what gets renamed during commit. The wrapper
  * skillify-<spawnId>/ is per-spawn so concurrent /skillify invocations don't
@@ -70,7 +70,7 @@ export function stageSkill(opts: StageSkillOptions): string {
   }
 
   const spawnId = opts.spawnId ?? generateSpawnId();
-  const tmpRoot = opts.tmpRoot ?? path.join(os.homedir(), '.gstack', '.tmp');
+  const tmpRoot = opts.tmpRoot ?? path.join(os.homedir(), '.fstack', '.tmp');
   const wrapperDir = path.join(tmpRoot, `skillify-${spawnId}`);
   const stagedDir = path.join(wrapperDir, opts.name);
 

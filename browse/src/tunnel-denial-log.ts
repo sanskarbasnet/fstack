@@ -12,14 +12,14 @@
  *   (Prior learning: sync-audit-log-io, 10/10 confidence.)
  * - Rate-capped at 60 writes/minute globally. Excess denials are counted in
  *   memory but not written to disk — prevents disk DoS.
- * - Writes to ~/.gstack/security/attempts.jsonl, shared with the prompt-injection
+ * - Writes to ~/.fstack/security/attempts.jsonl, shared with the prompt-injection
  *   attempt log. File rotation is handled by the existing security pipeline.
  */
 import { promises as fsp } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-const LOG_DIR = path.join(os.homedir(), '.gstack', 'security');
+const LOG_DIR = path.join(os.homedir(), '.fstack', 'security');
 const LOG_PATH = path.join(LOG_DIR, 'attempts.jsonl');
 const RATE_CAP = 60; // writes per minute
 const WINDOW_MS = 60_000;

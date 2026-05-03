@@ -1,5 +1,5 @@
 /**
- * gstack browse — Side Panel
+ * fstack browse — Side Panel
  *
  * Terminal pane (default): live claude PTY via xterm.js, driven by
  * sidepanel-terminal.js. The chat queue + sidebar-agent.ts were ripped
@@ -105,7 +105,7 @@ document.getElementById('chat-cookies-btn').addEventListener('click', async () =
       body: JSON.stringify({ command: 'goto', args: [`${serverUrl}/cookie-picker`] }),
     });
   } catch (err) {
-    console.error('[gstack sidebar] Failed to open cookie picker:', err.message);
+    console.error('[fstack sidebar] Failed to open cookie picker:', err.message);
   }
 });
 
@@ -259,7 +259,7 @@ async function ensureSseSessionCookie() {
     });
     return resp.ok;
   } catch (err) {
-    console.warn('[gstack sidebar] Failed to mint SSE session cookie:', err && err.message);
+    console.warn('[fstack sidebar] Failed to mint SSE session cookie:', err && err.message);
     return false;
   }
 }
@@ -274,7 +274,7 @@ async function connectSSE() {
 
   eventSource.addEventListener('activity', (e) => {
     try { addEntry(JSON.parse(e.data)); } catch (err) {
-      console.error('[gstack sidebar] Failed to parse activity event:', err.message);
+      console.error('[fstack sidebar] Failed to parse activity event:', err.message);
     }
   });
 
@@ -287,7 +287,7 @@ async function connectSSE() {
       banner.textContent = `Missed ${data.availableFrom - data.gapFrom} events`;
       feed.appendChild(banner);
     } catch (err) {
-      console.error('[gstack sidebar] Failed to parse gap event:', err.message);
+      console.error('[fstack sidebar] Failed to parse gap event:', err.message);
     }
   });
 }
@@ -324,7 +324,7 @@ async function fetchRefs() {
     `).join('');
     footer.textContent = `${data.refs.length} refs`;
   } catch (err) {
-    console.error('[gstack sidebar] Failed to fetch refs:', err.message);
+    console.error('[fstack sidebar] Failed to fetch refs:', err.message);
   }
 }
 
@@ -708,9 +708,9 @@ inspectorSendBtn.addEventListener('click', () => {
   // Inject into the running claude PTY so the user can ask claude to act
   // on the inspector data. Replaces the old `sidebar-command` route which
   // spawned a one-shot claude -p (sidebar-agent.ts is gone).
-  const ok = window.gstackInjectToTerminal?.(message + '\n');
+  const ok = window.fstackInjectToTerminal?.(message + '\n');
   if (!ok) {
-    console.warn('[gstack sidebar] Inspector send needs an active Terminal session.');
+    console.warn('[fstack sidebar] Inspector send needs an active Terminal session.');
   }
 });
 
@@ -735,9 +735,9 @@ async function runCleanup(...buttons) {
     'header/masthead, headline, article body, images, byline, and date. Also',
     'unlock scrolling if the page is scroll-locked.',
   ].join('\n');
-  const sent = window.gstackInjectToTerminal?.(cleanupPrompt + '\n');
+  const sent = window.fstackInjectToTerminal?.(cleanupPrompt + '\n');
   if (!sent) {
-    console.warn('[gstack sidebar] Cleanup needs an active Terminal session.');
+    console.warn('[fstack sidebar] Cleanup needs an active Terminal session.');
   }
   setTimeout(() => buttons.forEach(b => b?.classList.remove('loading')), 1200);
 }
@@ -754,12 +754,12 @@ async function runScreenshot(...buttons) {
     });
     const text = await resp.text();
     if (!resp.ok) {
-      console.warn('[gstack sidebar] Screenshot failed:', text);
+      console.warn('[fstack sidebar] Screenshot failed:', text);
     } else {
-      console.log('[gstack sidebar] Screenshot:', text);
+      console.log('[fstack sidebar] Screenshot:', text);
     }
   } catch (err) {
-    console.error('[gstack sidebar] Screenshot error:', err.message);
+    console.error('[fstack sidebar] Screenshot error:', err.message);
   } finally {
     buttons.forEach(b => b?.classList.remove('loading'));
   }
@@ -811,7 +811,7 @@ async function connectInspectorSSE() {
         const data = JSON.parse(e.data);
         inspectorShowData(data);
       } catch (err) {
-        console.error('[gstack sidebar] Failed to parse inspectResult:', err.message);
+        console.error('[fstack sidebar] Failed to parse inspectResult:', err.message);
       }
     });
 
@@ -820,7 +820,7 @@ async function connectInspectorSSE() {
       if (inspectorSSE) { inspectorSSE.close(); inspectorSSE = null; }
     });
   } catch (err) {
-    console.debug('[gstack sidebar] Inspector SSE not available:', err.message);
+    console.debug('[fstack sidebar] Inspector SSE not available:', err.message);
   }
 }
 
@@ -842,11 +842,11 @@ function updateConnection(url, token) {
   // the bootstrap token to POST /pty-session and the port to derive the WS
   // URL. We never expose the PTY token — it lives in an HttpOnly cookie.
   if (url) {
-    try { window.gstackServerPort = parseInt(new URL(url).port, 10); } catch {}
-    window.gstackAuthToken = token || null;
+    try { window.fstackServerPort = parseInt(new URL(url).port, 10); } catch {}
+    window.fstackAuthToken = token || null;
   } else {
-    window.gstackServerPort = null;
-    window.gstackAuthToken = null;
+    window.fstackServerPort = null;
+    window.fstackAuthToken = null;
   }
   if (url) {
     document.getElementById('footer-dot').className = 'dot connected';
@@ -904,10 +904,10 @@ document.getElementById('conn-reconnect').addEventListener('click', () => {
 });
 
 document.getElementById('conn-copy').addEventListener('click', () => {
-  navigator.clipboard.writeText('/open-gstack-browser').then(() => {
+  navigator.clipboard.writeText('/open-fstack-browser').then(() => {
     const btn = document.getElementById('conn-copy');
     btn.textContent = 'copied!';
-    setTimeout(() => { btn.textContent = '/open-gstack-browser'; }, 2000);
+    setTimeout(() => { btn.textContent = '/open-fstack-browser'; }, 2000);
   });
 });
 
@@ -999,7 +999,7 @@ async function tryConnect() {
   } catch (e) {
     setLoadingStatus(
       `Server not reachable on port ${port} (attempt ${connectAttempts})`,
-      `GET /health failed: ${e.message}\n\nThe browse server may still be starting.\nRun /open-gstack-browser in Claude Code.`
+      `GET /health failed: ${e.message}\n\nThe browse server may still be starting.\nRun /open-fstack-browser in Claude Code.`
     );
   }
 
@@ -1044,7 +1044,7 @@ chrome.runtime.onMessage.addListener((msg) => {
   // custom event so sidepanel-terminal.js can relay to terminal-agent.ts.
   // Result: claude's <stateDir>/tabs.json + active-tab.json stay live.
   if (msg.type === 'browserTabState') {
-    document.dispatchEvent(new CustomEvent('gstack:tab-state', {
+    document.dispatchEvent(new CustomEvent('fstack:tab-state', {
       detail: { active: msg.active, tabs: msg.tabs, reason: msg.reason },
     }));
   }

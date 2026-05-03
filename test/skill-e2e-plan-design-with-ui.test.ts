@@ -11,7 +11,7 @@
  * exit — would pass the no-UI test (vacuously) and ship undetected. This
  * test is the positive coverage.
  *
- * How: launch claude in plan mode in the gstack repo cwd (so the skill
+ * How: launch claude in plan mode in the fstack repo cwd (so the skill
  * registry is loaded). Send /plan-design-review with the fixture path
  * inline so the skill reviews the UI-heavy plan rather than git diff or
  * .claude/plans/. Drive past permission dialogs. Wait for a numbered-

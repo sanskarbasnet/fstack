@@ -3,10 +3,10 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-const TMP_HOME = path.join(os.tmpdir(), `gstack-test-${process.pid}-${Date.now()}`);
-process.env.GSTACK_HOME = TMP_HOME;
+const TMP_HOME = path.join(os.tmpdir(), `fstack-test-${process.pid}-${Date.now()}`);
+process.env.FSTACK_HOME = TMP_HOME;
 
-// Re-import after env var set so module reads updated GSTACK_HOME
+// Re-import after env var set so module reads updated FSTACK_HOME
 async function freshImport() {
   // Bun caches modules; force reload by appending a query-string-like hack via dynamic import URL
   // Simplest: just import once after env is set. All tests in this file share the TMP_HOME.

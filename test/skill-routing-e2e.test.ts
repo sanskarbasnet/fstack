@@ -61,15 +61,15 @@ if (evalsEnabled && process.env.EVALS_TIER) {
 
 /** Copy all SKILL.md files for auto-discovery.
  *  Installs to project-level (.claude/skills/) only. Writing to the user's
- *  ~/.claude/skills/ is unsafe: it may contain symlinks from the real gstack
+ *  ~/.claude/skills/ is unsafe: it may contain symlinks from the real fstack
  *  install that point to different worktrees or dangling targets. */
 function installSkills(tmpDir: string) {
   const skillDirs = [
-    '', // root gstack SKILL.md
+    '', // root fstack SKILL.md
     'qa', 'qa-only', 'ship', 'review', 'plan-ceo-review', 'plan-eng-review',
     'plan-design-review', 'design-review', 'design-consultation', 'retro',
     'document-release', 'investigate', 'office-hours', 'browse', 'setup-browser-cookies',
-    'gstack-upgrade', 'humanizer',
+    'fstack-upgrade', 'humanizer',
   ];
 
   const targetBase = path.join(tmpDir, '.claude', 'skills');
@@ -78,7 +78,7 @@ function installSkills(tmpDir: string) {
     const srcPath = path.join(ROOT, skill, 'SKILL.md');
     if (!fs.existsSync(srcPath)) continue;
 
-    const skillName = skill || 'gstack';
+    const skillName = skill || 'fstack';
     const destDir = path.join(targetBase, skillName);
     fs.mkdirSync(destDir, { recursive: true });
     fs.copyFileSync(srcPath, path.join(destDir, 'SKILL.md'));

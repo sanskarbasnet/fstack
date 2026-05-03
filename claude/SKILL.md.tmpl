@@ -7,7 +7,7 @@ description: |
   diff review via claude -p. Challenge: adversarial failure-mode review. Consult:
   ask Claude about the repo with read-only file tools. Use when asked for "claude
   review", "claude challenge", "ask claude", "second opinion from claude", or
-  "outside voice". (gstack)
+  "outside voice". (fstack)
 triggers:
   - claude review
   - claude challenge
@@ -28,7 +28,7 @@ You are running the `/claude` skill from a non-Claude host. This wraps `claude -
 to get an independent Claude Code second opinion without allowing nested Claude to
 modify files.
 
-The generated external invocation name is `gstack-claude`.
+The generated external invocation name is `fstack-claude`.
 
 ---
 
@@ -59,7 +59,7 @@ If `AUTH_MISSING`, stop and tell the user:
 
 ## Safety Boundary
 
-Nested Claude must stay focused on the user's repository and must not run gstack
+Nested Claude must stay focused on the user's repository and must not run fstack
 skills from inside this skill.
 
 All `claude -p` calls MUST include:
@@ -94,9 +94,9 @@ Use these shell snippets in every mode.
 Create temp files:
 
 ```bash
-PROMPT_FILE=$(mktemp /tmp/gstack-claude-prompt-XXXXXX)
-RESP_FILE=$(mktemp /tmp/gstack-claude-response-XXXXXX.json)
-ERR_FILE=$(mktemp /tmp/gstack-claude-error-XXXXXX.txt)
+PROMPT_FILE=$(mktemp /tmp/fstack-claude-prompt-XXXXXX)
+RESP_FILE=$(mktemp /tmp/fstack-claude-response-XXXXXX.json)
+ERR_FILE=$(mktemp /tmp/fstack-claude-error-XXXXXX.txt)
 ```
 
 Cleanup at the end of every mode:
@@ -151,7 +151,7 @@ Review the current branch diff with nested Claude in tool-less mode.
 ```bash
 _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo" >&2; exit 1; }
 cd "$_REPO_ROOT"
-DIFF_FILE=$(mktemp /tmp/gstack-claude-diff-XXXXXX.patch)
+DIFF_FILE=$(mktemp /tmp/fstack-claude-diff-XXXXXX.patch)
 git fetch origin <base> --quiet 2>/dev/null || true
 git diff "origin/<base>" > "$DIFF_FILE" 2>/dev/null || git diff "<base>" > "$DIFF_FILE"
 ```
@@ -264,7 +264,7 @@ cat > "$PROMPT_FILE" <<'EOF'
 You are Claude Code acting as an independent outside voice for this repository.
 Answer the user's question directly. You may inspect repository files with Read,
 Grep, and Glob only. Do not use Bash. Do not edit or write files. Do not invoke
-slash commands or gstack skills.
+slash commands or fstack skills.
 
 USER QUESTION:
 <user prompt>

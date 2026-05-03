@@ -6,7 +6,7 @@
  * to prefer mcp__*__AskUserQuestion variants and fall back to plan-file
  * decisions when neither is callable. This must NOT break the legitimate
  * `/plan-tune` AUTO_DECIDE path: when the user has explicitly opted into
- * auto-deciding a specific question via `gstack-question-preference --write
+ * auto-deciding a specific question via `fstack-question-preference --write
  * never-ask`, the model is supposed to honor that — it should still
  * auto-pick the recommended option and emit the AUTO_DECIDE annotation
  * ("Auto-decided <summary> → <option> (your preference). Change with
@@ -17,8 +17,8 @@
  * or manually rather than gating CI.
  *
  * Set up:
- *   - tmpDir as GSTACK_HOME (isolated state, doesn't touch the user's
- *     real ~/.gstack)
+ *   - tmpDir as FSTACK_HOME (isolated state, doesn't touch the user's
+ *     real ~/.fstack)
  *   - question_tuning=true in the tmp config
  *   - preference for plan-ceo-review-mode → never-ask (source: plan-tune)
  *
@@ -51,32 +51,32 @@ const ROOT = path.resolve(import.meta.dir, '..');
 
 describeE2E('AUTO_DECIDE opt-in preserved under Conductor flags (periodic)', () => {
   test('user-opted-in question still auto-decides when AskUserQuestion is --disallowedTools', async () => {
-    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'gstack-auto-decide-'));
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'fstack-auto-decide-'));
     try {
-      // 1. Bootstrap the tmp GSTACK_HOME with question_tuning=true.
-      const configBin = path.join(ROOT, 'bin', 'gstack-config');
+      // 1. Bootstrap the tmp FSTACK_HOME with question_tuning=true.
+      const configBin = path.join(ROOT, 'bin', 'fstack-config');
       const setRes = spawnSync(configBin, ['set', 'question_tuning', 'true'], {
-        env: { ...process.env, GSTACK_HOME: tmpHome },
+        env: { ...process.env, FSTACK_HOME: tmpHome },
         encoding: 'utf-8',
       });
       if (setRes.status !== 0) {
-        throw new Error(`gstack-config set failed: ${setRes.stderr || setRes.stdout}`);
+        throw new Error(`fstack-config set failed: ${setRes.stderr || setRes.stdout}`);
       }
 
       // 2. Resolve slug for the project (uses git remote — same as the spawned
       //    claude would resolve). The preference file path keys on this slug.
-      const slugBin = path.join(ROOT, 'bin', 'gstack-slug');
+      const slugBin = path.join(ROOT, 'bin', 'fstack-slug');
       const slugRes = spawnSync(slugBin, [], {
         cwd: ROOT,
-        env: { ...process.env, GSTACK_HOME: tmpHome },
+        env: { ...process.env, FSTACK_HOME: tmpHome },
         encoding: 'utf-8',
       });
-      // gstack-slug emits `eval`-able shell exports like `SLUG=garrytan-gstack`.
+      // fstack-slug emits `eval`-able shell exports like `SLUG=garrytan-fstack`.
       const slug = (slugRes.stdout.match(/SLUG=([^\s;]+)/)?.[1] ?? 'unknown').replace(/['"]/g, '');
 
       // 3. Write the preference: plan-ceo-review-mode → never-ask. The
       //    'plan-tune' source bypasses the inline-user origin gate.
-      const prefBin = path.join(ROOT, 'bin', 'gstack-question-preference');
+      const prefBin = path.join(ROOT, 'bin', 'fstack-question-preference');
       const writeRes = spawnSync(
         prefBin,
         ['--write', JSON.stringify({
@@ -85,12 +85,12 @@ describeE2E('AUTO_DECIDE opt-in preserved under Conductor flags (periodic)', () 
           source: 'plan-tune',
         })],
         {
-          env: { ...process.env, GSTACK_HOME: tmpHome },
+          env: { ...process.env, FSTACK_HOME: tmpHome },
           encoding: 'utf-8',
         },
       );
       if (writeRes.status !== 0) {
-        throw new Error(`gstack-question-preference --write failed: ${writeRes.stderr || writeRes.stdout}`);
+        throw new Error(`fstack-question-preference --write failed: ${writeRes.stderr || writeRes.stdout}`);
       }
 
       // Sanity: the preference file landed where we expect.

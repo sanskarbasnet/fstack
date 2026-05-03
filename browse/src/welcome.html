@@ -167,7 +167,7 @@
 <body>
 
 <div class="sidebar-prompt" id="sidebar-prompt">
-  <div class="bubble">Open the sidebar to get started. Click the puzzle piece icon in the toolbar, then pin gstack browse.</div>
+  <div class="bubble">Open the sidebar to get started. Click the puzzle piece icon in the toolbar, then pin fstack browse.</div>
   <span class="arrow-right">&#x2192;</span>
 </div>
 
@@ -219,16 +219,16 @@
   </div>
 
   <footer class="footer">
-    <p><a href="https://github.com/garrytan/gstack">gstack</a> is open source. Built by <a href="https://x.com/garrytan">Garry Tan</a>.</p>
+    <p><a href="https://github.com/garrytan/gstack">fstack</a> is open source. Built by <a href="https://x.com/garrytan">Garry Tan</a>.</p>
   </footer>
 </div>
 
 <script>
 // Hide sidebar prompt ONLY when the sidebar is actually opened.
-// The content script dispatches 'gstack-extension-ready' when it receives
+// The content script dispatches 'fstack-extension-ready' when it receives
 // a 'sidebarOpened' message from the side panel (via background.js).
 // This means the arrow stays visible until the user actually opens the sidebar.
-document.addEventListener('gstack-extension-ready', () => {
+document.addEventListener('fstack-extension-ready', () => {
   const prompt = document.getElementById('sidebar-prompt');
   if (prompt) prompt.classList.add('hidden');
 });

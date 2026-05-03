@@ -20,10 +20,10 @@
  * numbered prompt.
  *
  * Env passthrough: passes `QUESTION_TUNING=false` and `EXPLAIN_LEVEL=default`
- * via the runner's env option. Today these are advisory — `gstack-config`
- * reads `~/.gstack/config.yaml`, not env vars, so a contributor with
+ * via the runner's env option. Today these are advisory — `fstack-config`
+ * reads `~/.fstack/config.yaml`, not env vars, so a contributor with
  * `question_tuning: true` set in their YAML config can still see AUTO_DECIDE
- * masking. The env passthrough is wired so a future gstack-config change to
+ * masking. The env passthrough is wired so a future fstack-config change to
  * honor env overrides will make this test hermetic without further edits.
  * Tracked as a post-merge follow-up.
  *

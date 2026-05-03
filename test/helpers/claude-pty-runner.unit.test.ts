@@ -48,7 +48,7 @@ describe('isPermissionDialogVisible', () => {
     const sample = `
       Some preamble output
 
-      Bash command \`gstack-config get telemetry\` requires permission to run.
+      Bash command \`fstack-config get telemetry\` requires permission to run.
 
       ❯ 1. Yes
         2. Yes, and always allow
@@ -61,7 +61,7 @@ describe('isPermissionDialogVisible', () => {
     // Isolated to the "allow all edits" clause only — no overlapping
     // "Do you want to proceed?" co-trigger, so this asserts the clause works.
     const sample = `
-      Edit to ~/.gstack/config.yaml
+      Edit to ~/.fstack/config.yaml
 
       ❯ 1. Yes
         2. Yes, allow all edits during this session
@@ -73,7 +73,7 @@ describe('isPermissionDialogVisible', () => {
   test('matches the "Do you want to proceed?" file-edit confirmation by itself', () => {
     // Separate fixture so weakening this clause is detected by a dedicated test.
     const sample = `
-      Edit to ~/.gstack/config.yaml
+      Edit to ~/.fstack/config.yaml
 
       Do you want to proceed?
 
@@ -212,7 +212,7 @@ describe('classifyVisible (runtime path through the runner classifier)', () => {
 
   test('permission dialog (Bash) → returns null (skip, keep polling)', () => {
     const visible = `
-      Bash command \`gstack-update-check\` requires permission to run.
+      Bash command \`fstack-update-check\` requires permission to run.
 
       ❯ 1. Yes
         2. No
@@ -553,8 +553,8 @@ describe('auqFingerprint', () => {
 });
 
 describe('COMPLETION_SUMMARY_RE', () => {
-  test('matches GSTACK REVIEW REPORT heading', () => {
-    expect(COMPLETION_SUMMARY_RE.test('## GSTACK REVIEW REPORT')).toBe(true);
+  test('matches FSTACK REVIEW REPORT heading', () => {
+    expect(COMPLETION_SUMMARY_RE.test('## FSTACK REVIEW REPORT')).toBe(true);
   });
 
   test('matches Completion Summary heading (ceo + eng)', () => {
@@ -587,7 +587,7 @@ stuff
 ## Approach
 more stuff
 
-## GSTACK REVIEW REPORT
+## FSTACK REVIEW REPORT
 
 | col | col |
 `;
@@ -603,13 +603,13 @@ stuff
 `;
     const r = assertReviewReportAtBottom(content);
     expect(r.ok).toBe(false);
-    expect(r.reason).toMatch(/no GSTACK REVIEW REPORT/);
+    expect(r.reason).toMatch(/no FSTACK REVIEW REPORT/);
   });
 
   test('fails when REVIEW REPORT exists but a ## heading follows it', () => {
     const content = `# Plan
 
-## GSTACK REVIEW REPORT
+## FSTACK REVIEW REPORT
 
 | col | col |
 
@@ -623,7 +623,7 @@ oops
   });
 
   test('passes when only ### subheadings follow REVIEW REPORT (deeper nesting allowed)', () => {
-    const content = `## GSTACK REVIEW REPORT
+    const content = `## FSTACK REVIEW REPORT
 
 ### Cross-model tension
 - F1: resolved
@@ -634,7 +634,7 @@ oops
   });
 
   test('fails with multiple trailing ## headings reported', () => {
-    const content = `## GSTACK REVIEW REPORT
+    const content = `## FSTACK REVIEW REPORT
 
 ## First trailing
 

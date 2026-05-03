@@ -6,7 +6,7 @@ name: Windows Free Tests
 # a Linux container, so a windows-latest matrix entry there isn't a drop-in.
 # This workflow is non-container, runs the curated Windows-safe subset, plus
 # targeted resolver tests that exercise the Bun.which-based claude binary
-# resolution + the GSTACK_CLAUDE_BIN override path on Windows.
+# resolution + the FSTACK_CLAUDE_BIN override path on Windows.
 #
 # What this DOES NOT do (out of scope for v1.18.0.0):
 #   - Run the full free suite on Windows. The 24 tests that hardcode /bin/sh,
@@ -39,7 +39,7 @@ jobs:
 
       - name: Configure git identity (required by tests that init temp repos)
         run: |
-          git config --global user.email "windows-ci@gstack.test"
+          git config --global user.email "windows-ci@fstack.test"
           git config --global user.name "Windows CI"
           git config --global init.defaultBranch main
         shell: bash
@@ -59,7 +59,7 @@ jobs:
 
       - name: Generate host SKILL.md outputs (.agents, .factory)
         # The golden-file regression tests in test/gen-skill-docs.test.ts read
-        # .agents/skills/gstack-ship/SKILL.md and .factory/skills/gstack-ship/
+        # .agents/skills/fstack-ship/SKILL.md and .factory/skills/fstack-ship/
         # SKILL.md. Both are gitignored — generated on demand by gen:skill-docs.
         # On Mac/Linux CI the existing eval workflow regenerates these as part
         # of its own pipeline; the windows-free-tests lane doesn't share that
@@ -78,9 +78,9 @@ jobs:
       # contributors a starting point to grow Windows coverage incrementally.
       #
       # What we verify here is exactly the new code paths v1.20.0.0 ships:
-      #  - bin/gstack-paths state-root resolution (test/gstack-paths.test.ts)
+      #  - bin/fstack-paths state-root resolution (test/fstack-paths.test.ts)
       #  - browse/src/claude-bin.ts Bun.which wrapper + override + arg-prefix
-      #    resolution including the GSTACK_CLAUDE_BIN=wsl PATHEXT path
+      #    resolution including the FSTACK_CLAUDE_BIN=wsl PATHEXT path
       #    (browse/test/claude-bin.test.ts)
       #  - scripts/test-free-shards.ts curation logic itself
       #    (test/test-free-shards.test.ts)
@@ -94,5 +94,5 @@ jobs:
         # 31 tests targeting the new code paths added by v1.20.0.0. These
         # MUST pass for the release-note headline ("curated Windows lane added")
         # to be truthful.
-        run: bun test test/gstack-paths.test.ts browse/test/claude-bin.test.ts test/test-free-shards.test.ts
+        run: bun test test/fstack-paths.test.ts browse/test/claude-bin.test.ts test/test-free-shards.test.ts
         shell: bash

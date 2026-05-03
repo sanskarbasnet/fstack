@@ -12,7 +12,7 @@
  *      that match are excluded from the Windows-safe subset — they would fail
  *      on `windows-latest` no matter how the runner shards them.
  *
- * Adapted from the McGluut/gstack fork's test-free-shards.ts (190 LOC). The
+ * Adapted from the McGluut/fstack fork's test-free-shards.ts (190 LOC). The
  * Windows-safe filter is upstream-original — codex flagged that sharding alone
  * doesn't fix POSIX-bound tests, so we curate the subset that actually runs
  * on the windows-latest CI job.

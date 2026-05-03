@@ -24,7 +24,7 @@ const FLOOR = N - 1; // 4
 const CEILING = N + 2; // 7
 
 const PLAN_ENG_5_FINDINGS = [
-  'Please review this plan thoroughly. As you go, write your plan-mode plan to /tmp/gstack-test-plan-eng.md (use Edit/Write to that exact path).',
+  'Please review this plan thoroughly. As you go, write your plan-mode plan to /tmp/fstack-test-plan-eng.md (use Edit/Write to that exact path).',
   '',
   '# Plan: Multi-tenant Auth Refactor',
   '',
@@ -49,7 +49,7 @@ const PLAN_ENG_5_FINDINGS = [
   'SessionMint, AuthCache, RequestPolicy). Worth flagging the complexity check.',
 ].join('\n');
 
-const PLAN_ENG_PATH = '/tmp/gstack-test-plan-eng.md';
+const PLAN_ENG_PATH = '/tmp/fstack-test-plan-eng.md';
 
 describeE2E('/plan-eng-review per-finding AskUserQuestion count (periodic)', () => {
   test(

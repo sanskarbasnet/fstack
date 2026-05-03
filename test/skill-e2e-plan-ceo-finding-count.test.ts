@@ -33,7 +33,7 @@ import {
  *   7. Skip interview and plan immediately
  *
  * The default pick (1) routes to "branch diff vs main" — the wrong target
- * for our seeded fixture (the agent would review the gstack PR itself,
+ * for our seeded fixture (the agent would review the fstack PR itself,
  * recursively). Picking "Skip interview and plan immediately" bypasses
  * Step 0 and routes the agent to review the chat context (where our
  * follow-up plan was pasted).
@@ -63,7 +63,7 @@ const FLOOR_PAIRED = 2;
 const CEILING_PAIRED = 4;
 
 const PLAN_CEO_5_FINDINGS = [
-  'Please review this plan thoroughly. As you go, write your plan-mode plan to /tmp/gstack-test-plan-ceo.md (use Edit/Write to that exact path).',
+  'Please review this plan thoroughly. As you go, write your plan-mode plan to /tmp/fstack-test-plan-ceo.md (use Edit/Write to that exact path).',
   '',
   '# Plan: Payment Processing Integration',
   '',
@@ -89,7 +89,7 @@ const PLAN_CEO_5_FINDINGS = [
 ].join('\n');
 
 const PLAN_CEO_2_PAIRED_FINDINGS = [
-  'Please review this plan thoroughly. As you go, write your plan-mode plan to /tmp/gstack-test-plan-ceo-paired.md (use Edit/Write to that exact path).',
+  'Please review this plan thoroughly. As you go, write your plan-mode plan to /tmp/fstack-test-plan-ceo-paired.md (use Edit/Write to that exact path).',
   '',
   '# Plan: Payment Processing — Test Coverage',
   '',
@@ -102,8 +102,8 @@ const PLAN_CEO_2_PAIRED_FINDINGS = [
   'the success path is correctness, the failure path is graceful degradation.',
 ].join('\n');
 
-const PLAN_CEO_PATH = '/tmp/gstack-test-plan-ceo.md';
-const PLAN_CEO_PAIRED_PATH = '/tmp/gstack-test-plan-ceo-paired.md';
+const PLAN_CEO_PATH = '/tmp/fstack-test-plan-ceo.md';
+const PLAN_CEO_PAIRED_PATH = '/tmp/fstack-test-plan-ceo-paired.md';
 
 describeE2E('/plan-ceo-review per-finding AskUserQuestion count (periodic)', () => {
   test(

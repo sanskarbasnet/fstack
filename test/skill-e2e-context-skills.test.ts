@@ -29,9 +29,9 @@ const evalCollector = createEvalCollector('e2e-context-skills');
 // Shared install helper: copy both skill files + bin scripts + routing CLAUDE.md
 // into a tmp workdir. Matches the pattern from skill-routing-e2e.test.ts so
 // claude -p discovers the skills via .claude/skills/ auto-scan.
-function setupWorkdir(suffix: string): { workDir: string; gstackHome: string; slug: string } {
+function setupWorkdir(suffix: string): { workDir: string; fstackHome: string; slug: string } {
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), `skill-e2e-ctx-${suffix}-`));
-  const gstackHome = path.join(workDir, '.gstack-home');
+  const fstackHome = path.join(workDir, '.fstack-home');
 
   const run = (cmd: string, args: string[]) =>
     spawnSync(cmd, args, { cwd: workDir, stdio: 'pipe', timeout: 5000 });
@@ -54,9 +54,9 @@ function setupWorkdir(suffix: string): { workDir: string; gstackHome: string; sl
   const binDir = path.join(workDir, 'bin');
   fs.mkdirSync(binDir, { recursive: true });
   for (const script of [
-    'gstack-timeline-log', 'gstack-timeline-read', 'gstack-slug',
-    'gstack-learnings-log', 'gstack-learnings-search',
-    'gstack-update-check', 'gstack-config', 'gstack-repo-mode',
+    'fstack-timeline-log', 'fstack-timeline-read', 'fstack-slug',
+    'fstack-learnings-log', 'fstack-learnings-search',
+    'fstack-update-check', 'fstack-config', 'fstack-repo-mode',
   ]) {
     const src = path.join(ROOT, 'bin', script);
     if (fs.existsSync(src)) {
@@ -78,19 +78,19 @@ Key routing rules:
 - Resume, where was I, pick up where I left off → invoke context-restore
 
 Environment:
-- Use GSTACK_HOME="${gstackHome}" for all gstack bin scripts.
+- Use FSTACK_HOME="${fstackHome}" for all fstack bin scripts.
 - The bin scripts are at ./bin/ (relative to this directory).
 - The skill files are at ./.claude/skills/context-save/SKILL.md and
   ./.claude/skills/context-restore/SKILL.md.
 `);
 
   const slug = path.basename(workDir).replace(/[^a-zA-Z0-9._-]/g, '');
-  return { workDir, gstackHome, slug };
+  return { workDir, fstackHome, slug };
 }
 
 // Helper: seed a saved-context file into the storage dir.
-function seedSave(gstackHome: string, slug: string, filename: string, frontmatter: Record<string, string>, body: string) {
-  const dir = path.join(gstackHome, 'projects', slug, 'checkpoints');
+function seedSave(fstackHome: string, slug: string, filename: string, frontmatter: Record<string, string>, body: string) {
+  const dir = path.join(fstackHome, 'projects', slug, 'checkpoints');
   fs.mkdirSync(dir, { recursive: true });
   const fm = '---\n' + Object.entries(frontmatter).map(([k, v]) => `${k}: ${v}`).join('\n') + '\n---\n';
   fs.writeFileSync(path.join(dir, filename), fm + body);
@@ -146,17 +146,17 @@ describeIfSelected('Context Skills E2E (live-fire)', [
 
   // ── 1. Routing: /context-save actually invokes the Skill tool ────────
   testConcurrentIfSelected('context-save-routing', async () => {
-    const { workDir, gstackHome, slug } = setupWorkdir('routing');
+    const { workDir, fstackHome, slug } = setupWorkdir('routing');
 
     // Prompt pattern: the slash command + explicit "invoke via Skill tool"
-    // instruction. The GSTACK_HOME / ./bin bash setup that used to be in
+    // instruction. The FSTACK_HOME / ./bin bash setup that used to be in
     // the prompt now comes via env:. Prompt without the Skill-tool hint
     // causes the agent to interpret /context-save as a shell token and
     // skip Skill routing entirely — which defeats this test's purpose.
     const result = await runSkillTest({
       prompt: `Run /context-save wintermute progress. Invoke via the Skill tool. Do NOT use AskUserQuestion.`,
       workingDirectory: workDir,
-      env: { GSTACK_HOME: gstackHome },
+      env: { FSTACK_HOME: fstackHome },
       maxTurns: 12,
       allowedTools: ['Skill', 'Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob'],
       timeout: 120_000,
@@ -169,7 +169,7 @@ describeIfSelected('Context Skills E2E (live-fire)', [
     const invokedSkills = skillCalls(result);
     const routedToContextSave = invokedSkills.includes('context-save');
     // File should also be written to the storage dir.
-    const checkpointDir = path.join(gstackHome, 'projects', slug, 'checkpoints');
+    const checkpointDir = path.join(fstackHome, 'projects', slug, 'checkpoints');
     const files = fs.existsSync(checkpointDir) ? fs.readdirSync(checkpointDir).filter((f) => f.endsWith('.md')) : [];
     const exitOk = ['success', 'error_max_turns'].includes(result.exitReason);
 
@@ -185,7 +185,7 @@ describeIfSelected('Context Skills E2E (live-fire)', [
 
   // ── 2. Round-trip: save then restore in the same session ─────────────
   testConcurrentIfSelected('context-save-then-restore-roundtrip', async () => {
-    const { workDir, gstackHome, slug } = setupWorkdir('roundtrip');
+    const { workDir, fstackHome, slug } = setupWorkdir('roundtrip');
     const magicMarker = 'wintermute-roundtrip-MX7FQZ';
 
     // Stage a change so /context-save has something to capture.
@@ -198,7 +198,7 @@ describeIfSelected('Context Skills E2E (live-fire)', [
 2. Run /context-restore — invoke via the Skill tool. Report what it loaded.
 Do NOT use AskUserQuestion.`,
       workingDirectory: workDir,
-      env: { GSTACK_HOME: gstackHome },
+      env: { FSTACK_HOME: fstackHome },
       maxTurns: 25,
       allowedTools: ['Skill', 'Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob'],
       timeout: 240_000,
@@ -210,7 +210,7 @@ Do NOT use AskUserQuestion.`,
 
     const invokedSkills = skillCalls(result);
     const bothRouted = invokedSkills.includes('context-save') && invokedSkills.includes('context-restore');
-    const checkpointDir = path.join(gstackHome, 'projects', slug, 'checkpoints');
+    const checkpointDir = path.join(fstackHome, 'projects', slug, 'checkpoints');
     const files = fs.existsSync(checkpointDir) ? fs.readdirSync(checkpointDir).filter((f) => f.endsWith('.md')) : [];
     // Broader surface — agent may stop at restore's Skill call without
     // echoing the marker into result.output. The marker is also in the
@@ -232,23 +232,23 @@ Do NOT use AskUserQuestion.`,
 
   // ── 3. /context-restore <fragment> loads the matching save ───────────
   testConcurrentIfSelected('context-restore-fragment-match', async () => {
-    const { workDir, gstackHome, slug } = setupWorkdir('fragment');
+    const { workDir, fstackHome, slug } = setupWorkdir('fragment');
 
     // Seed three saves with distinct titles.
-    seedSave(gstackHome, slug, '20260101-120000-alpha-feature.md',
+    seedSave(fstackHome, slug, '20260101-120000-alpha-feature.md',
       { status: 'in-progress', branch: 'feat/alpha', timestamp: '2026-01-01T12:00:00Z' },
       '## Working on: alpha feature\n\n### Summary\nAlpha content FRAGMATCH_ALPHA_BUILD\n');
-    seedSave(gstackHome, slug, '20260202-120000-middle-payments.md',
+    seedSave(fstackHome, slug, '20260202-120000-middle-payments.md',
       { status: 'in-progress', branch: 'feat/payments', timestamp: '2026-02-02T12:00:00Z' },
       '## Working on: middle payments\n\n### Summary\nPayments content FRAGMATCH_PAYMENTS_BUILD\n');
-    seedSave(gstackHome, slug, '20260303-120000-omega-release.md',
+    seedSave(fstackHome, slug, '20260303-120000-omega-release.md',
       { status: 'in-progress', branch: 'feat/omega', timestamp: '2026-03-03T12:00:00Z' },
       '## Working on: omega release\n\n### Summary\nOmega content FRAGMATCH_OMEGA_BUILD\n');
 
     const result = await runSkillTest({
       prompt: `Run /context-restore payments — load the saved context whose title contains "payments". Invoke via the Skill tool. Report what was loaded. Do NOT use AskUserQuestion.`,
       workingDirectory: workDir,
-      env: { GSTACK_HOME: gstackHome },
+      env: { FSTACK_HOME: fstackHome },
       maxTurns: 10,
       allowedTools: ['Skill', 'Bash', 'Read', 'Grep', 'Glob'],
       timeout: 120_000,
@@ -279,15 +279,15 @@ Do NOT use AskUserQuestion.`,
 
   // ── 4. /context-restore with zero saves → graceful empty-state ───────
   testConcurrentIfSelected('context-restore-empty-state', async () => {
-    const { workDir, gstackHome, slug } = setupWorkdir('empty');
+    const { workDir, fstackHome, slug } = setupWorkdir('empty');
     // Ensure the storage dir is empty or missing — setupWorkdir doesn't seed.
-    const checkpointDir = path.join(gstackHome, 'projects', slug, 'checkpoints');
+    const checkpointDir = path.join(fstackHome, 'projects', slug, 'checkpoints');
     expect(fs.existsSync(checkpointDir)).toBe(false);
 
     const result = await runSkillTest({
       prompt: `Run /context-restore — there are no saved contexts yet. Invoke via the Skill tool. Do NOT use AskUserQuestion.`,
       workingDirectory: workDir,
-      env: { GSTACK_HOME: gstackHome },
+      env: { FSTACK_HOME: fstackHome },
       maxTurns: 8,
       allowedTools: ['Skill', 'Bash', 'Read', 'Grep', 'Glob'],
       timeout: 90_000,
@@ -319,15 +319,15 @@ Do NOT use AskUserQuestion.`,
 
   // ── 5. /context-restore list redirects to /context-save list ─────────
   testConcurrentIfSelected('context-restore-list-delegates', async () => {
-    const { workDir, gstackHome, slug } = setupWorkdir('delegates');
-    seedSave(gstackHome, slug, '20260101-120000-seed.md',
+    const { workDir, fstackHome, slug } = setupWorkdir('delegates');
+    seedSave(fstackHome, slug, '20260101-120000-seed.md',
       { status: 'in-progress', branch: 'main', timestamp: '2026-01-01T12:00:00Z' },
       '## Working on: seed\n');
 
     const result = await runSkillTest({
       prompt: `Run /context-restore list. Invoke via the Skill tool. Do NOT use AskUserQuestion.`,
       workingDirectory: workDir,
-      env: { GSTACK_HOME: gstackHome },
+      env: { FSTACK_HOME: fstackHome },
       maxTurns: 8,
       allowedTools: ['Skill', 'Bash', 'Read', 'Grep', 'Glob'],
       timeout: 90_000,
@@ -357,12 +357,12 @@ Do NOT use AskUserQuestion.`,
 
   // ── 6. Legacy compat: pre-rename save files still load ───────────────
   testConcurrentIfSelected('context-restore-legacy-compat', async () => {
-    const { workDir, gstackHome, slug } = setupWorkdir('legacy');
+    const { workDir, fstackHome, slug } = setupWorkdir('legacy');
 
     // Seed a save file in the pre-rename format (exactly how old /checkpoint
     // wrote them). The storage dir name is still "checkpoints/" — kept for
     // exactly this reason.
-    seedSave(gstackHome, slug, '20260301-120000-legacy-pre-rename-work.md',
+    seedSave(fstackHome, slug, '20260301-120000-legacy-pre-rename-work.md',
       {
         status: 'in-progress',
         branch: 'feat/pre-rename',
@@ -374,7 +374,7 @@ Do NOT use AskUserQuestion.`,
     const result = await runSkillTest({
       prompt: `Run /context-restore — load the most recent saved context. Invoke via the Skill tool. Report the content of the loaded file. Do NOT use AskUserQuestion.`,
       workingDirectory: workDir,
-      env: { GSTACK_HOME: gstackHome },
+      env: { FSTACK_HOME: fstackHome },
       maxTurns: 8,
       allowedTools: ['Skill', 'Bash', 'Read', 'Grep', 'Glob'],
       timeout: 120_000,
@@ -414,23 +414,23 @@ Do NOT use AskUserQuestion.`,
 
   // ── 7. /context-save list: default filters to current branch ─────────
   testConcurrentIfSelected('context-save-list-current-branch', async () => {
-    const { workDir, gstackHome, slug } = setupWorkdir('list-current');
+    const { workDir, fstackHome, slug } = setupWorkdir('list-current');
 
     // Seed 3 files on 3 different branches. Current branch is "main".
-    seedSave(gstackHome, slug, '20260101-120000-main-work.md',
+    seedSave(fstackHome, slug, '20260101-120000-main-work.md',
       { status: 'in-progress', branch: 'main', timestamp: '2026-01-01T12:00:00Z' },
       '## Working on: main work LISTCURR_MAIN_TOKEN\n');
-    seedSave(gstackHome, slug, '20260202-120000-feat-alpha.md',
+    seedSave(fstackHome, slug, '20260202-120000-feat-alpha.md',
       { status: 'in-progress', branch: 'feat/alpha', timestamp: '2026-02-02T12:00:00Z' },
       '## Working on: alpha LISTCURR_ALPHA_TOKEN\n');
-    seedSave(gstackHome, slug, '20260303-120000-feat-beta.md',
+    seedSave(fstackHome, slug, '20260303-120000-feat-beta.md',
       { status: 'in-progress', branch: 'feat/beta', timestamp: '2026-03-03T12:00:00Z' },
       '## Working on: beta LISTCURR_BETA_TOKEN\n');
 
     const result = await runSkillTest({
       prompt: `Run /context-save list — list saved contexts for the CURRENT branch only (default, no --all). Invoke via the Skill tool. The current branch is "main". Do NOT use AskUserQuestion.`,
       workingDirectory: workDir,
-      env: { GSTACK_HOME: gstackHome },
+      env: { FSTACK_HOME: fstackHome },
       maxTurns: 10,
       allowedTools: ['Skill', 'Bash', 'Read', 'Grep', 'Glob'],
       timeout: 120_000,
@@ -466,22 +466,22 @@ Do NOT use AskUserQuestion.`,
 
   // ── 8. /context-save list --all: shows every branch ──────────────────
   testConcurrentIfSelected('context-save-list-all-branches', async () => {
-    const { workDir, gstackHome, slug } = setupWorkdir('list-all');
+    const { workDir, fstackHome, slug } = setupWorkdir('list-all');
 
-    seedSave(gstackHome, slug, '20260101-120000-main-work.md',
+    seedSave(fstackHome, slug, '20260101-120000-main-work.md',
       { status: 'in-progress', branch: 'main', timestamp: '2026-01-01T12:00:00Z' },
       '## Working on: main LISTALL_MAIN_TOKEN\n');
-    seedSave(gstackHome, slug, '20260202-120000-feat-alpha.md',
+    seedSave(fstackHome, slug, '20260202-120000-feat-alpha.md',
       { status: 'in-progress', branch: 'feat/alpha', timestamp: '2026-02-02T12:00:00Z' },
       '## Working on: alpha LISTALL_ALPHA_TOKEN\n');
-    seedSave(gstackHome, slug, '20260303-120000-feat-beta.md',
+    seedSave(fstackHome, slug, '20260303-120000-feat-beta.md',
       { status: 'in-progress', branch: 'feat/beta', timestamp: '2026-03-03T12:00:00Z' },
       '## Working on: beta LISTALL_BETA_TOKEN\n');
 
     const result = await runSkillTest({
       prompt: `Run /context-save list --all — list saved contexts from ALL branches (not just the current one). Invoke via the Skill tool. Report the full list. Do NOT use AskUserQuestion.`,
       workingDirectory: workDir,
-      env: { GSTACK_HOME: gstackHome },
+      env: { FSTACK_HOME: fstackHome },
       maxTurns: 10,
       allowedTools: ['Skill', 'Bash', 'Read', 'Grep', 'Glob'],
       timeout: 120_000,

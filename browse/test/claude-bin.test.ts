@@ -16,12 +16,12 @@ describe('claude-bin', () => {
   test('absolute-path override returned as-is', () => {
     const got = resolveClaudeCommand({
       ...EMPTY_ENV,
-      GSTACK_CLAUDE_BIN: '/opt/custom/claude',
+      FSTACK_CLAUDE_BIN: '/opt/custom/claude',
     });
     expect(got).toEqual({ command: '/opt/custom/claude', argsPrefix: [] });
   });
 
-  test('CLAUDE_BIN works as fallback alias for GSTACK_CLAUDE_BIN', () => {
+  test('CLAUDE_BIN works as fallback alias for FSTACK_CLAUDE_BIN', () => {
     const got = resolveClaudeCommand({
       ...EMPTY_ENV,
       CLAUDE_BIN: '/opt/custom/claude',
@@ -29,10 +29,10 @@ describe('claude-bin', () => {
     expect(got?.command).toBe('/opt/custom/claude');
   });
 
-  test('GSTACK_CLAUDE_BIN takes precedence over CLAUDE_BIN', () => {
+  test('FSTACK_CLAUDE_BIN takes precedence over CLAUDE_BIN', () => {
     const got = resolveClaudeCommand({
       ...EMPTY_ENV,
-      GSTACK_CLAUDE_BIN: '/explicit/path',
+      FSTACK_CLAUDE_BIN: '/explicit/path',
       CLAUDE_BIN: '/fallback/path',
     });
     expect(got?.command).toBe('/explicit/path');
@@ -51,7 +51,7 @@ describe('claude-bin', () => {
     try {
       const got = resolveClaudeCommand({
         PATH: tmpDir,
-        GSTACK_CLAUDE_BIN: 'fake-claude-cli',
+        FSTACK_CLAUDE_BIN: 'fake-claude-cli',
       });
       expect(got?.command).toBe(fakeBin);
     } finally {
@@ -62,25 +62,25 @@ describe('claude-bin', () => {
   test('override pointing at missing binary → null (no silent fallback to bare claude)', () => {
     const got = resolveClaudeCommand({
       ...EMPTY_ENV,
-      GSTACK_CLAUDE_BIN: 'definitely-not-a-real-binary-xyz',
+      FSTACK_CLAUDE_BIN: 'definitely-not-a-real-binary-xyz',
     });
     expect(got).toBeNull();
   });
 
-  test('GSTACK_CLAUDE_BIN_ARGS as JSON array → parsed argsPrefix', () => {
+  test('FSTACK_CLAUDE_BIN_ARGS as JSON array → parsed argsPrefix', () => {
     const got = resolveClaudeCommand({
       ...EMPTY_ENV,
-      GSTACK_CLAUDE_BIN: '/opt/custom/claude',
-      GSTACK_CLAUDE_BIN_ARGS: '["--no-cache", "--verbose"]',
+      FSTACK_CLAUDE_BIN: '/opt/custom/claude',
+      FSTACK_CLAUDE_BIN_ARGS: '["--no-cache", "--verbose"]',
     });
     expect(got?.argsPrefix).toEqual(['--no-cache', '--verbose']);
   });
 
-  test('GSTACK_CLAUDE_BIN_ARGS as scalar string → treated as single argument', () => {
+  test('FSTACK_CLAUDE_BIN_ARGS as scalar string → treated as single argument', () => {
     const got = resolveClaudeCommand({
       ...EMPTY_ENV,
-      GSTACK_CLAUDE_BIN: '/opt/custom/claude',
-      GSTACK_CLAUDE_BIN_ARGS: 'claude',
+      FSTACK_CLAUDE_BIN: '/opt/custom/claude',
+      FSTACK_CLAUDE_BIN_ARGS: 'claude',
     });
     expect(got?.argsPrefix).toEqual(['claude']);
   });
@@ -88,7 +88,7 @@ describe('claude-bin', () => {
   test('argsPrefix empty when no override args set', () => {
     const got = resolveClaudeCommand({
       ...EMPTY_ENV,
-      GSTACK_CLAUDE_BIN: '/opt/custom/claude',
+      FSTACK_CLAUDE_BIN: '/opt/custom/claude',
     });
     expect(got?.argsPrefix).toEqual([]);
   });

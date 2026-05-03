@@ -4,8 +4,8 @@ Per-site notes the agent writes for itself. Compounds across sessions: once an
 agent figures out something non-obvious about a website, it saves a skill, and
 future sessions on that host get the note injected into their prompt context.
 
-This is gstack's borrow from [browser-use/browser-harness](https://github.com/browser-use/browser-harness).
-gstack copies the per-site-notes pattern, NOT the self-modifying-runtime
+This is fstack's borrow from [browser-use/browser-harness](https://github.com/browser-use/browser-harness).
+fstack copies the per-site-notes pattern, NOT the self-modifying-runtime
 pattern. Skills are markdown text loaded into prompts; they are not executable
 code.
 
@@ -57,7 +57,7 @@ skill auto-promotes to **active** in the project. Active skills fire on every
 new sidebar-agent session for that hostname.
 
 To make a skill fire across projects (for example, "I want my LinkedIn skill
-on every gstack project I work on"), explicitly run
+on every fstack project I work on"), explicitly run
 `$B domain-skill promote-to-global <host>`. This is opt-in by design (Codex T4
 outside-voice review): blanket cross-project compounding leaks context across
 unrelated work.
@@ -66,9 +66,9 @@ unrelated work.
 
 Skills live in two places:
 
-- **Per-project**: `~/.gstack/projects/<slug>/learnings.jsonl` — same JSONL
+- **Per-project**: `~/.fstack/projects/<slug>/learnings.jsonl` — same JSONL
   file the `/learn` skill uses. Domain skills are `type:"domain"` rows.
-- **Global**: `~/.gstack/global-domain-skills.jsonl` — only `state:"global"`
+- **Global**: `~/.fstack/global-domain-skills.jsonl` — only `state:"global"`
   rows.
 
 Both files are append-only JSONL. Tombstones for deletes; an idle compactor
@@ -112,7 +112,7 @@ poisoning a different domain.
 ## Telemetry
 
 When telemetry is enabled (default `community` mode unless turned off), the
-following events are written to `~/.gstack/analytics/browse-telemetry.jsonl`:
+following events are written to `~/.fstack/analytics/browse-telemetry.jsonl`:
 
 - `domain_skill_saved {host, scope, state, bytes}`
 - `domain_skill_save_blocked {host, reason}`
@@ -120,4 +120,4 @@ following events are written to `~/.gstack/analytics/browse-telemetry.jsonl`:
 - `domain_skill_state_changed {host, from_state, to_state}` (planned)
 
 Hostname only — no body content, no agent text. Disable entirely with
-`gstack-config set telemetry off` or `GSTACK_TELEMETRY_OFF=1`.
+`fstack-config set telemetry off` or `FSTACK_TELEMETRY_OFF=1`.

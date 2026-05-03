@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as os from 'os';
 
 const ROOT = path.resolve(import.meta.dir, '..');
-const MIGRATION = path.join(ROOT, 'gstack-upgrade', 'migrations', 'v1.1.3.0.sh');
+const MIGRATION = path.join(ROOT, 'fstack-upgrade', 'migrations', 'v1.1.3.0.sh');
 
 function runMigration(tmpHome: string): { exitCode: number; stdout: string; stderr: string } {
   const result = spawnSync('bash', [MIGRATION], {
@@ -20,47 +20,47 @@ function runMigration(tmpHome: string): { exitCode: number; stdout: string; stde
   };
 }
 
-function setupFakeGstackRoot(tmpHome: string): string {
-  // A real target that the gstack symlink can resolve into.
-  const gstackDir = path.join(tmpHome, '.claude', 'skills', 'gstack');
-  fs.mkdirSync(path.join(gstackDir, 'checkpoint'), { recursive: true });
-  fs.writeFileSync(path.join(gstackDir, 'checkpoint', 'SKILL.md'), '# fake gstack checkpoint\n');
-  return gstackDir;
+function setupFakeFstackRoot(tmpHome: string): string {
+  // A real target that the fstack symlink can resolve into.
+  const fstackDir = path.join(tmpHome, '.claude', 'skills', 'fstack');
+  fs.mkdirSync(path.join(fstackDir, 'checkpoint'), { recursive: true });
+  fs.writeFileSync(path.join(fstackDir, 'checkpoint', 'SKILL.md'), '# fake fstack checkpoint\n');
+  return fstackDir;
 }
 
 describe('migration v1.1.3.0 — checkpoint ownership guard', () => {
   let tmpHome: string;
 
   beforeEach(() => {
-    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'gstack-migration-ownership-'));
+    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'fstack-migration-ownership-'));
   });
 
   afterEach(() => {
     try { fs.rmSync(tmpHome, { recursive: true, force: true }); } catch {}
   });
 
-  test('scenario A: directory symlink into gstack → removed', () => {
-    setupFakeGstackRoot(tmpHome);
+  test('scenario A: directory symlink into fstack → removed', () => {
+    setupFakeFstackRoot(tmpHome);
     const skillsDir = path.join(tmpHome, '.claude', 'skills');
-    const gstackCheckpoint = path.join(skillsDir, 'gstack', 'checkpoint');
+    const fstackCheckpoint = path.join(skillsDir, 'fstack', 'checkpoint');
     const topLevel = path.join(skillsDir, 'checkpoint');
-    fs.symlinkSync(gstackCheckpoint, topLevel);
+    fs.symlinkSync(fstackCheckpoint, topLevel);
 
     const result = runMigration(tmpHome);
     expect(result.exitCode).toBe(0);
     expect(fs.existsSync(topLevel)).toBe(false);
-    // Also removes the gstack-owned inner copy (Shape 2 cleanup).
-    expect(fs.existsSync(gstackCheckpoint)).toBe(false);
+    // Also removes the fstack-owned inner copy (Shape 2 cleanup).
+    expect(fs.existsSync(fstackCheckpoint)).toBe(false);
     expect(result.stdout).toContain('Removed stale /checkpoint symlink');
   });
 
-  test('scenario B: directory with SKILL.md symlinked into gstack → removed', () => {
-    setupFakeGstackRoot(tmpHome);
+  test('scenario B: directory with SKILL.md symlinked into fstack → removed', () => {
+    setupFakeFstackRoot(tmpHome);
     const skillsDir = path.join(tmpHome, '.claude', 'skills');
-    const gstackSKILL = path.join(skillsDir, 'gstack', 'checkpoint', 'SKILL.md');
+    const fstackSKILL = path.join(skillsDir, 'fstack', 'checkpoint', 'SKILL.md');
     const topLevel = path.join(skillsDir, 'checkpoint');
     fs.mkdirSync(topLevel, { recursive: true });
-    fs.symlinkSync(gstackSKILL, path.join(topLevel, 'SKILL.md'));
+    fs.symlinkSync(fstackSKILL, path.join(topLevel, 'SKILL.md'));
 
     const result = runMigration(tmpHome);
     expect(result.exitCode).toBe(0);
@@ -69,7 +69,7 @@ describe('migration v1.1.3.0 — checkpoint ownership guard', () => {
   });
 
   test('scenario C: user-owned regular directory with custom content → preserved', () => {
-    setupFakeGstackRoot(tmpHome);
+    setupFakeFstackRoot(tmpHome);
     const skillsDir = path.join(tmpHome, '.claude', 'skills');
     const topLevel = path.join(skillsDir, 'checkpoint');
     fs.mkdirSync(topLevel, { recursive: true });
@@ -83,11 +83,11 @@ describe('migration v1.1.3.0 — checkpoint ownership guard', () => {
     expect(fs.existsSync(path.join(topLevel, 'SKILL.md'))).toBe(true);
     expect(fs.existsSync(path.join(topLevel, 'extra.txt'))).toBe(true);
     expect(result.stdout).toContain('Leaving');
-    expect(result.stdout).toContain('not a gstack-owned install');
+    expect(result.stdout).toContain('not a fstack-owned install');
   });
 
-  test('scenario D: symlink pointing outside gstack → preserved', () => {
-    setupFakeGstackRoot(tmpHome);
+  test('scenario D: symlink pointing outside fstack → preserved', () => {
+    setupFakeFstackRoot(tmpHome);
     const skillsDir = path.join(tmpHome, '.claude', 'skills');
     const topLevel = path.join(skillsDir, 'checkpoint');
     // User's own skill elsewhere on the filesystem.
@@ -102,14 +102,14 @@ describe('migration v1.1.3.0 — checkpoint ownership guard', () => {
     // The user's underlying dir is untouched.
     expect(fs.existsSync(path.join(userSkillDir, 'SKILL.md'))).toBe(true);
     expect(result.stdout).toContain('Leaving');
-    expect(result.stdout).toContain('outside gstack');
+    expect(result.stdout).toContain('outside fstack');
   });
 
   test('scenario E: nothing to do → no-op exit 0 (idempotent)', () => {
     // No checkpoint install at all. First run: nothing removed.
-    setupFakeGstackRoot(tmpHome);
-    // Delete the inner gstack/checkpoint to simulate post-upgrade state.
-    fs.rmSync(path.join(tmpHome, '.claude', 'skills', 'gstack', 'checkpoint'), { recursive: true, force: true });
+    setupFakeFstackRoot(tmpHome);
+    // Delete the inner fstack/checkpoint to simulate post-upgrade state.
+    fs.rmSync(path.join(tmpHome, '.claude', 'skills', 'fstack', 'checkpoint'), { recursive: true, force: true });
 
     const result1 = runMigration(tmpHome);
     expect(result1.exitCode).toBe(0);
@@ -119,20 +119,20 @@ describe('migration v1.1.3.0 — checkpoint ownership guard', () => {
     expect(result2.exitCode).toBe(0);
   });
 
-  test('scenario F: gstack not installed → no-op exit 0', () => {
-    // No ~/.claude/skills/gstack/ at all. Also no checkpoint install.
+  test('scenario F: fstack not installed → no-op exit 0', () => {
+    // No ~/.claude/skills/fstack/ at all. Also no checkpoint install.
     fs.mkdirSync(path.join(tmpHome, '.claude', 'skills'), { recursive: true });
 
     const result = runMigration(tmpHome);
     expect(result.exitCode).toBe(0);
   });
 
-  test('scenario G: SKILL.md is a symlink pointing outside gstack → preserved', () => {
-    setupFakeGstackRoot(tmpHome);
+  test('scenario G: SKILL.md is a symlink pointing outside fstack → preserved', () => {
+    setupFakeFstackRoot(tmpHome);
     const skillsDir = path.join(tmpHome, '.claude', 'skills');
     const topLevel = path.join(skillsDir, 'checkpoint');
     fs.mkdirSync(topLevel, { recursive: true });
-    // A directory containing SKILL.md that's a symlink pointing outside gstack.
+    // A directory containing SKILL.md that's a symlink pointing outside fstack.
     const externalSkill = path.join(tmpHome, 'external', 'SKILL.md');
     fs.mkdirSync(path.dirname(externalSkill), { recursive: true });
     fs.writeFileSync(externalSkill, '# external skill\n');

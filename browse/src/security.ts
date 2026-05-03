@@ -15,7 +15,7 @@
  *   L5:    Canary (this module — inject + check)
  *   L6:    Threshold aggregation (this module — combineVerdict)
  *
- * Cross-process state lives at ~/.gstack/security/session-state.json
+ * Cross-process state lives at ~/.fstack/security/session-state.json
  * (per eng review finding 1.2 — server.ts and sidebar-agent.ts are different processes).
  */
 
@@ -54,7 +54,7 @@ export type Verdict = 'safe' | 'log_only' | 'warn' | 'block' | 'user_overrode';
 
 export type LayerName =
   | 'testsavant_content'
-  | 'deberta_content'        // opt-in ensemble layer (GSTACK_SECURITY_ENSEMBLE=deberta)
+  | 'deberta_content'        // opt-in ensemble layer (FSTACK_SECURITY_ENSEMBLE=deberta)
   | 'transcript_classifier'
   | 'aria_regex'
   | 'canary';
@@ -317,10 +317,10 @@ export interface AttemptRecord {
   confidence: number;
   layer: LayerName;
   verdict: Verdict;
-  gstackVersion?: string;
+  fstackVersion?: string;
 }
 
-const SECURITY_DIR = path.join(os.homedir(), '.gstack', 'security');
+const SECURITY_DIR = path.join(os.homedir(), '.fstack', 'security');
 const ATTEMPTS_LOG = path.join(SECURITY_DIR, 'attempts.jsonl');
 const SALT_FILE = path.join(SECURITY_DIR, 'device-salt');
 const MAX_LOG_BYTES = 10 * 1024 * 1024; // 10MB rotate threshold (eng review 4.1)
@@ -328,7 +328,7 @@ const MAX_LOG_GENERATIONS = 5;
 
 /**
  * Read-or-create the per-device salt used for payload hashing. Salt lives at
- * ~/.gstack/security/device-salt (0600). Random per-device, prevents rainbow
+ * ~/.fstack/security/device-salt (0600). Random per-device, prevents rainbow
  * table attacks across devices (Codex tier-2 finding).
  */
 let cachedSalt: string | null = null;
@@ -387,20 +387,20 @@ function rotateIfNeeded(): void {
 }
 
 /**
- * Try to locate the gstack-telemetry-log binary. Resolution order matches
+ * Try to locate the fstack-telemetry-log binary. Resolution order matches
  * the existing skill preamble pattern (never relies on PATH — packaged
  * binary layouts can break that).
  *
  * Order:
- *  1. ~/.claude/skills/gstack/bin/gstack-telemetry-log  (global install)
- *  2. .claude/skills/gstack/bin/gstack-telemetry-log    (symlinked dev)
- *  3. bin/gstack-telemetry-log                          (in-repo dev)
+ *  1. ~/.claude/skills/fstack/bin/fstack-telemetry-log  (global install)
+ *  2. .claude/skills/fstack/bin/fstack-telemetry-log    (symlinked dev)
+ *  3. bin/fstack-telemetry-log                          (in-repo dev)
  */
 function findTelemetryBinary(): string | null {
   const candidates = [
-    path.join(os.homedir(), '.claude', 'skills', 'gstack', 'bin', 'gstack-telemetry-log'),
-    path.resolve(process.cwd(), '.claude', 'skills', 'gstack', 'bin', 'gstack-telemetry-log'),
-    path.resolve(process.cwd(), 'bin', 'gstack-telemetry-log'),
+    path.join(os.homedir(), '.claude', 'skills', 'fstack', 'bin', 'fstack-telemetry-log'),
+    path.resolve(process.cwd(), '.claude', 'skills', 'fstack', 'bin', 'fstack-telemetry-log'),
+    path.resolve(process.cwd(), 'bin', 'fstack-telemetry-log'),
   ];
   for (const c of candidates) {
     try {
@@ -414,7 +414,7 @@ function findTelemetryBinary(): string | null {
 }
 
 /**
- * Fire-and-forget subprocess invocation of gstack-telemetry-log with the
+ * Fire-and-forget subprocess invocation of fstack-telemetry-log with the
  * attack_attempt event type. The binary handles tier gating internally
  * (community → upload, anonymous → local only, off → no-op), so we don't
  * need to re-check here.
@@ -447,7 +447,7 @@ function reportAttemptTelemetry(record: AttemptRecord): void {
 
 /**
  * Append an attempt to the local log AND fire telemetry via
- * gstack-telemetry-log (which respects the user's telemetry tier setting).
+ * fstack-telemetry-log (which respects the user's telemetry tier setting).
  * Never throws — logging failure should not break the sidebar.
  * Returns true if the local write succeeded.
  */
@@ -511,7 +511,7 @@ export function readSessionState(): SessionState | null {
 //
 // When a tool-output BLOCK fires, the user gets to see the suspected text
 // and decide. The sidepanel posts to /security-decision, server writes a
-// per-tab file under ~/.gstack/security/decisions/, sidebar-agent polls
+// per-tab file under ~/.fstack/security/decisions/, sidebar-agent polls
 // for it. File-based on purpose: sidebar-agent.ts is a separate subprocess
 // and this is the same pattern the existing per-tab cancel file uses.
 

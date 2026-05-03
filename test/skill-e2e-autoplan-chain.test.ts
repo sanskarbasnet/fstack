@@ -52,7 +52,7 @@ describeE2E('/autoplan chain ordering (periodic)', () => {
     'phases run sequentially: Phase 1 (CEO) before Phase 3 (Eng), Phase 2 (Design) between when present',
     async () => {
       // UI-heavy fixture so Phase 2 runs.
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gstack-autoplan-chain-'));
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fstack-autoplan-chain-'));
       try {
         const gitRun = (args: string[]) =>
           spawnSync('git', args, { cwd: tempDir, stdio: 'pipe', timeout: 5000 });

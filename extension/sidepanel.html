@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="lib/xterm.css">
 </head>
 <body>
-  <!-- Security shield — reflects ~/.gstack/security/session-state.json status.
+  <!-- Security shield — reflects ~/.fstack/security/session-state.json status.
        Hidden until the sidebar knows its state (avoids flicker on first load).
        Consumes /health.security — see browse/src/security.ts getStatus(). -->
   <div class="security-shield" id="security-shield" role="status" aria-label="Security status: unknown" style="display:none" title="Security">
@@ -21,7 +21,7 @@
     <span class="conn-banner-text" id="conn-banner-text">Reconnecting...</span>
     <div class="conn-banner-actions" id="conn-banner-actions" style="display:none">
       <button class="conn-btn" id="conn-reconnect">Reconnect</button>
-      <button class="conn-btn conn-copy" id="conn-copy" title="Copy command">/open-gstack-browser</button>
+      <button class="conn-btn conn-copy" id="conn-copy" title="Copy command">/open-fstack-browser</button>
     </div>
   </div>
 

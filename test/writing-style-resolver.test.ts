@@ -11,7 +11,7 @@
  * - Compact semantic contract present (gloss, outcome, impact, override)
  * - Jargon list inlined (sample terms appear)
  * - Terse-mode gate condition text present
- * - Codex output uses $GSTACK_BIN, not ~/.claude/... (host-aware paths)
+ * - Codex output uses $FSTACK_BIN, not ~/.claude/... (host-aware paths)
  * - Tier-1 preamble does NOT include Writing Style section
  */
 import { describe, test, expect } from 'bun:test';
@@ -69,8 +69,8 @@ describe('Writing Style preamble section', () => {
     const explainLine = out.split('\n').find(l => l.includes('_EXPLAIN_LEVEL='));
     expect(explainLine).toBeDefined();
     expect(explainLine).not.toMatch(/~\/\.claude\//);
-    // Codex uses $GSTACK_BIN
-    expect(explainLine).toContain('$GSTACK_BIN');
+    // Codex uses $FSTACK_BIN
+    expect(explainLine).toContain('$FSTACK_BIN');
   });
 
   test('tier 1 preamble does NOT include Writing Style section', () => {

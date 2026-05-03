@@ -6,15 +6,15 @@ import { spawnSync } from "child_process";
 
 // Import normalizeRemoteUrl for unit testing
 // We test the script end-to-end via CLI and normalizeRemoteUrl via import
-const scriptPath = join(import.meta.dir, "..", "bin", "gstack-global-discover.ts");
+const scriptPath = join(import.meta.dir, "..", "bin", "fstack-global-discover.ts");
 
-describe("gstack-global-discover", () => {
+describe("fstack-global-discover", () => {
   describe("normalizeRemoteUrl", () => {
     // Dynamically import to test the exported function
     let normalizeRemoteUrl: (url: string) => string;
 
     beforeEach(async () => {
-      const mod = await import("../bin/gstack-global-discover.ts");
+      const mod = await import("../bin/fstack-global-discover.ts");
       normalizeRemoteUrl = mod.normalizeRemoteUrl;
     });
 
@@ -136,7 +136,7 @@ describe("gstack-global-discover", () => {
     let tmpDir: string;
 
     beforeEach(() => {
-      tmpDir = mkdtempSync(join(tmpdir(), "gstack-codex-test-"));
+      tmpDir = mkdtempSync(join(tmpdir(), "fstack-codex-test-"));
       // Build a realistic ~/.codex/sessions/YYYY/MM/DD structure
       const now = new Date();
       const y = now.getFullYear().toString();

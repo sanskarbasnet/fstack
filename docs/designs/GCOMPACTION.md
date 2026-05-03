@@ -2,7 +2,7 @@
 
 **Target path on approval:** `docs/designs/GCOMPACTION.md`
 
-This is the preserved design artifact for `gstack compact`. Everything above the first `---` divider below gets extracted verbatim to `docs/designs/GCOMPACTION.md` on plan approval. Everything after that divider is archived research (office hours + competitive deep-dive + eng-review notes + codex review + research findings) that informed the design.
+This is the preserved design artifact for `fstack compact`. Everything above the first `---` divider below gets extracted verbatim to `docs/designs/GCOMPACTION.md` on plan approval. Everything after that divider is archived research (office hours + competitive deep-dive + eng-review notes + codex review + research findings) that informed the design.
 
 ---
 
@@ -22,7 +22,7 @@ This is the preserved design artifact for `gstack compact`. Everything above the
 - Wedge (i) "Conditional LLM verifier" — still technically possible, but only for Bash output, via PreToolUse command wrapping (RTK's mechanism). The verifier stops being a differentiator once we're also Bash-only.
 - Wedge (ii) "Native-tool coverage" — impossible today. Read/Grep/Glob don't fire hooks. Even if they did, no output-replace field exists.
 
-**Decision.** Shelve `gstack compact` entirely. Track Anthropic issue #36843 for the arrival of `updatedBuiltinToolOutput` (or equivalent). When that API ships, this design doc + the 15 locked decisions below + the research archive at the bottom become the unblocking artifacts for a fresh implementation sprint.
+**Decision.** Shelve `fstack compact` entirely. Track Anthropic issue #36843 for the arrival of `updatedBuiltinToolOutput` (or equivalent). When that API ships, this design doc + the 15 locked decisions below + the research archive at the bottom become the unblocking artifacts for a fresh implementation sprint.
 
 **If un-tabling:** Start from the "Decisions locked during plan-eng-review" block below — most remain valid. Then re-verify the hooks reference against the newly-shipped API, update the Architecture data-flow diagram to use whatever real output-replacement field exists, and re-run `/codex review` against the revised plan before coding.
 
@@ -43,7 +43,7 @@ Summary of every decision made during the engineering review. Full rationale is 
 
 **Scope (Section 0):**
 1. **Claude-first v1.** Ship compact + rules + verifier on Claude Code only. Codex + OpenClaw land at v1.1 after the wedge is proven on the primary host. Cuts ~2 days of host integration and derisks launch. The original "wedge (ii) native-tool coverage" claim applies to Claude Code at v1; we make no cross-host claim until v1.1.
-2. **13-rule launch library.** v1 ships tests (jest/vitest/pytest/cargo-test/go-test/rspec) + git (diff/log/status) + install (npm/pnpm/pip/cargo). Build/lint/log families defer to v1.1, driven by `gstack compact discover` telemetry from real users.
+2. **13-rule launch library.** v1 ships tests (jest/vitest/pytest/cargo-test/go-test/rspec) + git (diff/log/status) + install (npm/pnpm/pip/cargo). Build/lint/log families defer to v1.1, driven by `fstack compact discover` telemetry from real users.
 3. **Verifier default ON at v1.0.** `failureCompaction` trigger (exit≠0 AND >50% reduction) is enabled out of the box. The verifier IS the wedge — defaulting it off hides the differentiating feature. Trigger bounds already keep expected fire rate ≤10% of tool calls.
 
 **Architecture (Section 1):**
@@ -53,7 +53,7 @@ Summary of every decision made during the engineering review. Full rationale is 
 
 **Code quality (Section 2):**
 7. **Per-rule regex timeout, no RE2 dep.** Run each rule's regex via a 50ms AbortSignal budget; on timeout, skip the rule and record `meta.regexTimedOut: [ruleId]`. Avoids a WASM dependency and keeps rule-author syntax unconstrained.
-8. **Pre-compiled rule bundle.** `gstack compact install` and `gstack compact reload` produce `~/.gstack/compact/rules.bundle.json` (deep-merged, regex-compiled metadata cached). Hook reads that single file instead of parsing N source files.
+8. **Pre-compiled rule bundle.** `fstack compact install` and `fstack compact reload` produce `~/.fstack/compact/rules.bundle.json` (deep-merged, regex-compiled metadata cached). Hook reads that single file instead of parsing N source files.
 9. **Auto-reload on mtime drift.** Hook stats rule source files on startup; if any source file is newer than the bundle, rebuild in-line before applying. Adds ~0.5ms/invocation but eliminates the "I edited a rule and nothing changed" footgun.
 10. **Expanded v1 redaction set.** Tee files redact: AWS keys, GitHub tokens (`ghp_/gho_/ghs_/ghu_`), GitLab tokens (`glpat-`), Slack webhooks, generic JWT (three base64 segments), generic bearer tokens, SSH private-key headers (`-----BEGIN * PRIVATE KEY-----`). Credit cards / SSNs / per-key env-pairs deferred to a full DLP layer in v2.
 
@@ -72,7 +72,7 @@ Every row above is a `MUST` in the implementation. Drift requires a new eng-revi
 
 ## Summary
 
-`gstack compact` was designed as a `PostToolUse` hook that reduces tool-output noise before it reaches an AI coding agent's context window. Deterministic JSON rules would shrink noisy test runners, build logs, git diffs, and package installs. A conditional Claude Haiku verifier would act as a safety net when over-compaction risk was high.
+`fstack compact` was designed as a `PostToolUse` hook that reduces tool-output noise before it reaches an AI coding agent's context window. Deterministic JSON rules would shrink noisy test runners, build logs, git diffs, and package installs. A conditional Claude Haiku verifier would act as a safety net when over-compaction risk was high.
 
 **Current status: TABLED.** See "Status" section above. The architecture depends on a Claude Code API (`updatedBuiltinToolOutput` or equivalent for built-in tools) that does not exist as of 2026-04-17. Anthropic issue #36843 tracks the gap.
 
@@ -82,7 +82,7 @@ Every row above is a `MUST` in the implementation. Drift requires a new eng-revi
 1. ~~**Conditional LLM verifier.**~~ Still technically viable via PreToolUse command wrapping, but only for Bash. Stops being a differentiator once we're Bash-only. Reconsider if the built-in-tool API arrives.
 2. ~~**Native-tool coverage.**~~ Architecturally impossible today. Read/Grep/Glob execute in-process inside Claude Code and do not fire hooks. Even for tools that do fire `PostToolUse`, no output-replacement field exists for non-MCP tools.
 
-**Original positioning (now moot):** *"RTK is fast. gstack compact is fast AND safe, and it covers every tool in your toolbox, not just Bash."*
+**Original positioning (now moot):** *"RTK is fast. fstack compact is fast AND safe, and it covers every tool in your toolbox, not just Bash."*
 
 ## Non-goals
 
@@ -90,7 +90,7 @@ Every row above is a `MUST` in the implementation. Drift requires a new eng-revi
 - Compressing agent response output (caveman's layer).
 - Caching tool calls to avoid re-execution (token-optimizer-mcp's layer).
 - Acting as a general-purpose log analyzer.
-- Replacing the agent's own judgement about when to re-run a command with `GSTACK_RAW=1`.
+- Replacing the agent's own judgement about when to re-run a command with `FSTACK_RAW=1`.
 
 ## Why this is worth building
 
@@ -100,7 +100,7 @@ Every row above is a `MUST` in the implementation. Drift requires a new eng-revi
 - Coding agents are the worst case: accumulative context + high distractor density + long task horizon. Tool output is explicitly named as a primary noise source.
 - The market has voted: Anthropic shipped Opus 4.6 Compaction API; OpenAI shipped a compaction guide; Google ADK shipped context compression; LangChain shipped autonomous compression; sst/opencode has built-in compaction. The hybrid deterministic + LLM pattern is industry consensus.
 
-**Existing field (what gstack compact joins and differentiates from):**
+**Existing field (what fstack compact joins and differentiates from):**
 
 | Project | Stars | License | Layer | Threat | Note |
 |---------|-------|---------|-------|--------|------|
@@ -113,7 +113,7 @@ Every row above is a `MUST` in the implementation. Drift requires a new eng-revi
 
 RTK is the only direct competitor. Everything else compresses a different token source.
 
-**License compatibility:** Every referenced project is permissive-licensed (MIT or Apache-2.0) and compatible with gstack's MIT license. No AGPL, GPL, or other copyleft dependencies. See the "License & attribution" section below for the clean-room policy.
+**License compatibility:** Every referenced project is permissive-licensed (MIT or Apache-2.0) and compatible with fstack's MIT license. No AGPL, GPL, or other copyleft dependencies. See the "License & attribution" section below for the clean-room policy.
 
 ## Architecture
 
@@ -130,7 +130,7 @@ RTK is the only direct competitor. Everything else compresses a different token 
                      │ stdin (JSON envelope)
                      ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  gstack-compact hook binary                                     │
+│  fstack-compact hook binary                                     │
 │  ───────────────────────────                                    │
 │  a. Parse envelope                                              │
 │  b. Match rule by (tool, command, pattern)                      │
@@ -138,7 +138,7 @@ RTK is the only direct competitor. Everything else compresses a different token 
 │  d. Record reduction metadata                                   │
 │  e. Evaluate verifier triggers                                  │
 │  f. If trigger met: call Haiku, append preserved lines          │
-│  g. On failure exit code: tee raw to ~/.gstack/compact/tee/...  │
+│  g. On failure exit code: tee raw to ~/.fstack/compact/tee/...  │
 │  h. Emit JSON envelope to stdout                                │
 └────────────────────┬────────────────────────────────────────────┘
                      │ stdout (JSON envelope)
@@ -148,11 +148,11 @@ RTK is the only direct competitor. Everything else compresses a different token 
 
 ### Rule resolution
 
-Three-tier hierarchy (highest precedence wins), same pattern as tokenjuice and gstack's existing host-config-export model:
+Three-tier hierarchy (highest precedence wins), same pattern as tokenjuice and fstack's existing host-config-export model:
 
-1. Built-in rules: `compact/rules/` shipped with gstack
-2. User rules: `~/.config/gstack/compact-rules/`
-3. Project rules: `.gstack/compact-rules/`
+1. Built-in rules: `compact/rules/` shipped with fstack
+2. User rules: `~/.config/fstack/compact-rules/`
+3. Project rules: `.fstack/compact-rules/`
 
 Rules match tool calls by rule ID. A project rule with ID `tests/jest` overrides the built-in `tests/jest` entirely. No merging — replace semantics, to keep reasoning simple.
 
@@ -174,7 +174,7 @@ Input:
 Output:
 ```json
 {
-  "reduced": "compacted output with [gstack-compact: N → M lines, rule: X] header",
+  "reduced": "compacted output with [fstack-compact: N → M lines, rule: X] header",
   "meta": {
     "rule": "tests/jest",
     "linesBefore": 247,
@@ -245,7 +245,7 @@ The verifier is a cheap Haiku call that fires only under specific triggers. Neve
 | `failureCompaction` | **ON** | exit code ≠ 0 AND reduction >50% (diagnosis at risk) |
 | `aggressiveReduction` | off | reduction >80% AND original >200 lines |
 | `largeNoMatch` | off | no rule matched AND output >500 lines |
-| `userOptIn` | on (env-gated) | `GSTACK_COMPACT_VERIFY=1` forces verifier for that call |
+| `userOptIn` | on (env-gated) | `FSTACK_COMPACT_VERIFY=1` forces verifier for that call |
 
 Default config ships with `failureCompaction` only — the highest-leverage case (agent is debugging; rule may have filtered the critical stack frame).
 
@@ -260,8 +260,8 @@ or `NONE` if nothing critical is missing.
 The verifier never rewrites the compacted output. It only appends missing lines under a header:
 
 ```
-[gstack-compact: 247 → 18 lines, rule: tests/jest]
-[gstack-verify: 2 additional lines preserved by Haiku]
+[fstack-compact: 247 → 18 lines, rule: tests/jest]
+[fstack-verify: 2 additional lines preserved by Haiku]
   TypeError: Cannot read property 'foo' of undefined
     at parseConfig (src/config.ts:42:18)
 ```
@@ -280,7 +280,7 @@ The verifier never rewrites the compacted output. It only appends missing lines 
       "aggressiveReduction": { "enabled": false, "thresholdPct": 80, "minLines": 200 },
       "failureCompaction":   { "enabled": true,  "minReductionPct": 50 },
       "largeNoMatch":        { "enabled": false, "minLines": 500 },
-      "userOptIn":           { "enabled": true, "envVar": "GSTACK_COMPACT_VERIFY" }
+      "userOptIn":           { "enabled": true, "envVar": "FSTACK_COMPACT_VERIFY" }
     },
     "fallback": "passthrough"
   }
@@ -297,10 +297,10 @@ The verifier never rewrites the compacted output. It only appends missing lines 
 
 ### Tee mode (adopted from RTK)
 
-On any command with exit code ≠ 0, the full unfiltered output is written to `~/.gstack/compact/tee/{timestamp}_{cmd-slug}.log`. The compacted output includes a tee-file pointer:
+On any command with exit code ≠ 0, the full unfiltered output is written to `~/.fstack/compact/tee/{timestamp}_{cmd-slug}.log`. The compacted output includes a tee-file pointer:
 
 ```
-[gstack-compact: 247 → 18 lines, rule: tests/jest, tee: ~/.gstack/compact/tee/20260416-143022_bun-test.log]
+[fstack-compact: 247 → 18 lines, rule: tests/jest, tee: ~/.fstack/compact/tee/20260416-143022_bun-test.log]
 ```
 
 The agent can read the tee file directly if it needs the full stack trace. This replaces the earlier `onFailure.preserveFull` mechanic with a cleaner design: compacted output always stays small; raw output is always one `cat` away.
@@ -324,7 +324,7 @@ The agent can read the tee file directly if it needs the full stack trace. This 
 
 ### Config surface
 
-User config (`~/.config/gstack/compact.toml`):
+User config (`~/.config/fstack/compact.toml`):
 
 ```toml
 [compact]
@@ -334,7 +334,7 @@ exclude_commands = ["curl", "playwright"]   # RTK pattern
 
 [compact.bundle]
 auto_reload_on_mtime_drift = true           # hook rebuilds bundle if source rule files are newer
-bundle_path = "~/.gstack/compact/rules.bundle.json"
+bundle_path = "~/.fstack/compact/rules.bundle.json"
 
 [compact.regex]
 per_rule_timeout_ms = 50                    # AbortSignal budget per regex; timeout → skip rule
@@ -356,7 +356,7 @@ cleanup_days = 7
 [compact.benchmark]
 local_only = true                           # hard-coded; config is documentary, cannot be changed
 transcript_root = "~/.claude/projects"
-output_dir = "~/.gstack/compact/benchmark"
+output_dir = "~/.fstack/compact/benchmark"
 scenario_cap = 20                           # top-N clusters by aggregate output volume
 ```
 
@@ -370,18 +370,18 @@ scenario_cap = 20                           # top-N clusters by aggregate output
 
 | Command | Purpose | Source |
 |---------|---------|--------|
-| `gstack compact install <host>` | Register PostToolUse hook in host config; builds `rules.bundle.json` | new |
-| `gstack compact uninstall <host>` | Idempotent removal | new |
-| `gstack compact reload` | Rebuild `rules.bundle.json` after editing user/project rules | new |
-| `gstack compact doctor` | Detect drift / broken hook config, offer to repair | tokenjuice |
-| `gstack compact gain` | Show token/dollar savings over time (per-rule breakdown) | RTK |
-| `gstack compact discover` | Find commands with no matching rule, ranked by noise volume | RTK |
-| `gstack compact verify <rule-id>` | Dry-run verifier on a fixture | new |
-| `gstack compact list-rules` | Show effective rule set after deep-merge (built-in + user + project) | new |
-| `gstack compact test <rule-id> <fixture>` | Apply a rule to a fixture and show the diff | new |
-| `gstack compact benchmark` | Run B-series testbench against local transcript corpus (see Benchmark section) | new |
+| `fstack compact install <host>` | Register PostToolUse hook in host config; builds `rules.bundle.json` | new |
+| `fstack compact uninstall <host>` | Idempotent removal | new |
+| `fstack compact reload` | Rebuild `rules.bundle.json` after editing user/project rules | new |
+| `fstack compact doctor` | Detect drift / broken hook config, offer to repair | tokenjuice |
+| `fstack compact gain` | Show token/dollar savings over time (per-rule breakdown) | RTK |
+| `fstack compact discover` | Find commands with no matching rule, ranked by noise volume | RTK |
+| `fstack compact verify <rule-id>` | Dry-run verifier on a fixture | new |
+| `fstack compact list-rules` | Show effective rule set after deep-merge (built-in + user + project) | new |
+| `fstack compact test <rule-id> <fixture>` | Apply a rule to a fixture and show the diff | new |
+| `fstack compact benchmark` | Run B-series testbench against local transcript corpus (see Benchmark section) | new |
 
-Escape hatch: `GSTACK_RAW=1` env var bypasses the hook entirely for the duration of a command (same pattern as tokenjuice's `--raw` flag). Hook also auto-reloads the bundle if any source rule file's mtime is newer than the bundle file.
+Escape hatch: `FSTACK_RAW=1` env var bypasses the hook entirely for the duration of a command (same pattern as tokenjuice's `--raw` flag). Hook also auto-reloads the bundle if any source rule file's mtime is newer than the bundle file.
 
 ## File layout
 
@@ -578,7 +578,7 @@ Run each scenario on each supported host. Same input, same expected output. If a
 
 | ID | Scenario | Hosts |
 |----|----------|-------|
-| CH1 | Install hook via `gstack compact install <host>` | Claude Code, Codex, OpenClaw |
+| CH1 | Install hook via `fstack compact install <host>` | Claude Code, Codex, OpenClaw |
 | CH2 | Uninstall hook is idempotent | All |
 | CH3 | Re-install doesn't duplicate entries | All |
 | CH4 | Hook co-exists with user's other PostToolUse hooks | All |
@@ -588,9 +588,9 @@ Run each scenario on each supported host. Same input, same expected output. If a
 | CH8 | Hook fires on Glob tool | Same as CH6 |
 | CH9 | Hook fires on MCP tool (`mcp__*` matcher) | Claude Code; verify on others |
 | CH10 | Config precedence: project > user > built-in | All |
-| CH11 | `GSTACK_RAW=1` env var bypasses hook | All |
+| CH11 | `FSTACK_RAW=1` env var bypasses hook | All |
 | CH12 | Rule ID override works (project rule replaces built-in) | All |
-| CH13 | `gstack compact doctor` detects drift on each host | All |
+| CH13 | `fstack compact doctor` detects drift on each host | All |
 | CH14 | Hook error does not crash the agent session | All |
 
 Implementation note: cross-host tests reuse the fixture corpus from the `golden/` tree; the harness wraps each fixture in a host-specific hook invocation envelope and asserts the output is byte-identical across hosts (modulo the `host` field).
@@ -603,7 +603,7 @@ Implementation note: cross-host tests reuse the fixture corpus from the `golden/
 | V2 | Rule reduces 10-line output to 9 lines, exit=1 | Verifier does NOT fire (reduction too small) |
 | V3 | Rule reduces 200-line output to 5 lines, exit=0 | Verifier does NOT fire (success path, default config) |
 | V4 | `aggressiveReduction` trigger enabled, 300 lines → 20 lines, exit=0 | Verifier fires |
-| V5 | `GSTACK_COMPACT_VERIFY=1` env var set | Verifier fires once for that call |
+| V5 | `FSTACK_COMPACT_VERIFY=1` env var set | Verifier fires once for that call |
 | V6 | `ANTHROPIC_API_KEY` missing | Verifier silently skipped; raw rule output returned |
 | V7 | Verifier mocked to return "NONE" | Output identical to pure-rule path |
 | V8 | Verifier mocked to return prompt injection | Injection discarded; only substring-matched lines appended |
@@ -672,8 +672,8 @@ Daemon mode is a v2 optimization. If B-series benchmark on the author's corpus s
 │              them. Real data + real threats = real proof.    │
 ├──────────────────────────────────────────────────────────────┤
 │  6. REPORT   report.ts emits HTML + JSON dashboard to        │
-│              ~/.gstack/compact/benchmark/latest/              │
-│              "On YOUR 30 days of Claude Code data, gstack    │
+│              ~/.fstack/compact/benchmark/latest/              │
+│              "On YOUR 30 days of Claude Code data, fstack    │
 │              compact would save X tokens in Y scenarios."    │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -685,7 +685,7 @@ Daemon mode is a v2 optimization. If B-series benchmark on the author's corpus s
 
 **Privacy (non-negotiable):**
 - Reads `~/.claude/projects/**/*.jsonl` locally only. Never uploads. Never shares. Never logs scenarios to telemetry.
-- Output files live under `~/.gstack/compact/benchmark/` with mode `0600`.
+- Output files live under `~/.fstack/compact/benchmark/` with mode `0600`.
 - The command prints a confirmation banner: *"Scanning local transcripts at ~/.claude/projects/ (local-only; nothing leaves this machine)."*
 - Any future community corpus is a separate v2 workstream built from hand-contributed, secret-scanned fixtures on OSS projects.
 
@@ -701,7 +701,7 @@ Daemon mode is a v2 optimization. If B-series benchmark on the author's corpus s
 
 Retained from the original plan but now informational-only because B-series is the real gate.
 
-- **E1:** simulated 30-min coding session on a medium TypeScript project. Measure total tokens with/without gstack compact enabled. Target: ≥15% reduction.
+- **E1:** simulated 30-min coding session on a medium TypeScript project. Measure total tokens with/without fstack compact enabled. Target: ≥15% reduction.
 - **E2:** same session at `level=aggressive`. Target: ≥25% reduction, zero test-failure increase.
 - **E3:** same session with verifier on `failureCompaction` only. Verifier fire rate ≤10% of tool calls.
 - **E4:** adversarial — inject a planted bug in a test output and confirm the verifier restores the critical stack frame.
@@ -710,7 +710,7 @@ Retained from the original plan but now informational-only because B-series is t
 
 For each rule family, capture 3+ real outputs:
 
-1. Run the tool against a real project (gstack itself for TS; popular OSS for Rust/Go/Python).
+1. Run the tool against a real project (fstack itself for TS; popular OSS for Rust/Go/Python).
 2. Capture stdout+stderr+exit code into a fixture file with `toolVersion:` frontmatter (e.g., `jest@29.7.0`).
 3. Hand-author the expected compacted output once.
 4. Golden file test: rule application must produce byte-identical output.
@@ -719,8 +719,8 @@ For each rule family, capture 3+ real outputs:
 Draw from:
 - tokenjuice's fixture directory patterns (`tests/fixtures/`)
 - RTK's per-command examples (their README lists real before/after metrics; verify independently)
-- gstack's own test output (eat our own dog food)
-- Real failure archives from `~/.gstack/compact/tee/` (once volunteers contribute)
+- fstack's own test output (eat our own dog food)
+- Real failure archives from `~/.fstack/compact/tee/` (once volunteers contribute)
 - **B-series real-world scenarios are the primary corpus for reduction measurements.**
 
 ## Pattern adoption table
@@ -730,11 +730,11 @@ Concrete patterns borrowed from the competitive landscape:
 | From | Adopt as | Why |
 |------|----------|-----|
 | RTK | 4 reduction primitives (filter/group/truncate/dedupe) as JSON rule verbs | Table stakes for a serious compactor |
-| RTK | `gstack compact tee` for failure-mode raw save | Better than the original `onFailure.preserveFull` design |
-| RTK | `gstack compact gain` + `gstack compact discover` | Trust + continuous improvement |
+| RTK | `fstack compact tee` for failure-mode raw save | Better than the original `onFailure.preserveFull` design |
+| RTK | `fstack compact gain` + `fstack compact discover` | Trust + continuous improvement |
 | RTK | `exclude_commands` per-user blocklist | Must-have config |
 | tokenjuice | JSON envelope contract for hook I/O | Clean machine adapter |
-| tokenjuice | `gstack compact doctor` | Hooks drift; self-repair matters |
+| tokenjuice | `fstack compact doctor` | Hooks drift; self-repair matters |
 | caveman | Intensity levels (minimal/normal/aggressive) | User-tunable safety/savings knob |
 | claude-token-efficient | Rules-file size budget (<5KB total) | Don't bloat context |
 
@@ -755,10 +755,10 @@ Concrete patterns borrowed from the competitive landscape:
 Each tier blocks on the prior passing all gate-tier tests. Claude-first — Codex and OpenClaw land at v1.1 after the wedge is proven on the primary host.
 
 1. **v0.0 (1 day):** rule engine + 4 primitives + line-oriented streaming pipeline + deep-merge + bundle compiler + envelope contract + golden tests for `tests/*` family only. No host integration yet. Measure savings on offline fixtures.
-2. **v0.1 (1 day):** Claude Code hook integration + `gstack compact install` + mtime-based auto-reload. Ship as opt-in; off by default. Ask 10 gstack power users to try it; collect feedback.
-3. **v0.5 (1 day):** B-series benchmark testbench (`compact/benchmark/`). Ship `gstack compact benchmark` so users can measure on their own data. Collect anonymous-from-the-start (nothing uploaded) reduction numbers from dogfooders.
+2. **v0.1 (1 day):** Claude Code hook integration + `fstack compact install` + mtime-based auto-reload. Ship as opt-in; off by default. Ask 10 fstack power users to try it; collect feedback.
+3. **v0.5 (1 day):** B-series benchmark testbench (`compact/benchmark/`). Ship `fstack compact benchmark` so users can measure on their own data. Collect anonymous-from-the-start (nothing uploaded) reduction numbers from dogfooders.
 4. **v1.0 (1 day):** verifier layer with `failureCompaction` trigger on by default + exact-line-match sanitization + layered exitCode/pattern fallback + expanded tee redaction set. **Hard ship gate:** B-series on the author's 30-day local corpus shows ≥15% total reduction AND zero critical-line loss on planted bugs. Publish CHANGELOG entry leading with wedge framing (Claude Code only at v1).
-5. **v1.1 (+1 day):** Codex + OpenClaw hook integration. Cross-host E2E suite green. Build/lint/log rule families land with `gstack compact discover`-derived priorities.
+5. **v1.1 (+1 day):** Codex + OpenClaw hook integration. Cross-host E2E suite green. Build/lint/log rule families land with `fstack compact discover`-derived priorities.
 6. **v1.2+:** expand rule families, community rule contribution workflow, community-corpus benchmark (hand-authored public fixtures, separate from local B-series).
 
 ## Risk analysis
@@ -768,20 +768,20 @@ Each tier blocks on the prior passing all gate-tier tests. Claude-first — Code
 | RTK adds an LLM verifier in response | Low | Creator is vocal about zero-dependency Rust. Ship first, build the pattern library. |
 | Platform compaction subsumes us (Anthropic Compaction API in Claude Code) | Medium | We operate at a different layer (per-tool output vs whole-context). Position as complementary. |
 | Rules drop something critical → "compactor made my agent dumb" | High | B-series real-world benchmark as hard ship gate; tee mode always available; verifier default-on for failures; exact-line-match sanitization. |
-| Haiku cost creep (triggers fire more than expected) | Medium | E3 eval + B-series fire-rate metric; cost visible in `gstack compact gain`; per-session rate cap in v1.1 if rate >10%. |
+| Haiku cost creep (triggers fire more than expected) | Medium | E3 eval + B-series fire-rate metric; cost visible in `fstack compact gain`; per-session rate cap in v1.1 if rate >10%. |
 | Rule maintenance debt (jest/vitest output formats change) | Medium | `toolVersion:` fixture frontmatter + CI drift warning; community rule PRs; `discover` flags bypassing commands. |
 | Rules file bloats context | Low | CI-enforced <5KB source + <25KB compiled bundle budget; per-rule size warning at schema-validation. |
 | Regex DoS blocks the agent | Medium | 50ms AbortSignal budget per rule; timeout logged to `meta.regexTimedOut`; stale rules quarantined on repeated failure. |
-| Bundle staleness silently breaks user edits | Low | mtime-check on every hook invocation auto-rebuilds; `gstack compact reload` is a backup not a requirement. |
+| Bundle staleness silently breaks user edits | Low | mtime-check on every hook invocation auto-rebuilds; `fstack compact reload` is a backup not a requirement. |
 | Benchmark leaks user's private data | High | Local-only by construction: no network call, mode-0600 output, explicit banner at runtime. Privacy review before v1 ship. |
 
 ## Open questions
 
 1. ~~Does Codex's PostToolUse hook support matchers for Read/Grep/Glob?~~ (Deferred to v1.1 — Claude-first at v1.)
 2. ~~Does OpenClaw's hook API support PostToolUse specifically?~~ (Deferred to v1.1.)
-3. Should the verifier model be pinned, or version-tracked like gstack's other AI calls? (Inclined to pin `claude-haiku-4-5-20251001` and bump explicitly in CHANGELOG.)
+3. Should the verifier model be pinned, or version-tracked like fstack's other AI calls? (Inclined to pin `claude-haiku-4-5-20251001` and bump explicitly in CHANGELOG.)
 4. ~~Built-in secret-redaction regex set for tee files~~ **(resolved: expanded set — AWS/GitHub/GitLab/Slack/JWT/bearer/SSH-private-key. See decision #10.)**
-5. Should `gstack compact discover` propose auto-generated rules via Haiku? (Deferred to v2; skill-creep risk.)
+5. Should `fstack compact discover` propose auto-generated rules via Haiku? (Deferred to v2; skill-creep risk.)
 6. **New:** Does Claude Code's PostToolUse envelope include `exitCode`? (Still needs empirical verification per pre-implementation task #1; system now has a layered fallback regardless.)
 7. **New:** What's the right scenario-count cap for B-series? Cluster.ts can produce 5-50 scenarios depending on heavy-tail shape. Plan: cap at top 20 clusters by aggregate output volume.
 
@@ -791,11 +791,11 @@ Each tier blocks on the prior passing all gate-tier tests. Claude-first — Code
 2. **Read RTK's rule definitions** (`ARCHITECTURE.md`, `src/rules/`) and write a 1-paragraph summary of which of the 4 primitives they handle best. Inform our v1 rule set. This is the Search Before Building layer.
 3. **Port analyze_transcripts JSONL parser to TypeScript.** `compact/benchmark/src/scanner.ts`. Write a quick-look output that lists the top-50 noisiest tool calls on the author's `~/.claude/projects/`. Confirms the testbench premise before we build the replay loop. This is the B-series foundation.
 4. **Write the CHANGELOG entry FIRST.** Target sentence: *"Every tool in your agent's toolbox on Claude Code now produces less noise — test runners, git diffs, package installs — with an intelligent Haiku safety net that restores critical stack frames when our rules over-compact, and a local benchmark that proves the savings on your actual 30 days of coding sessions. Codex + OpenClaw land in v1.1."* If we cannot write that sentence honestly, the wedge isn't there yet.
-5. **Ship a rule-only v0** (no Haiku verifier, no benchmark). Measure real token savings with current gstack evals + early B-series prototype. If <10% on local corpus, the whole premise is weaker than claimed — iterate the rules before adding the verifier on top.
+5. **Ship a rule-only v0** (no Haiku verifier, no benchmark). Measure real token savings with current fstack evals + early B-series prototype. If <10% on local corpus, the whole premise is weaker than claimed — iterate the rules before adding the verifier on top.
 
 ## License & attribution
 
-gstack ships under MIT. To keep the license clean for downstream users, this project follows a strict clean-room policy for everything borrowed from the competitive landscape:
+fstack ships under MIT. To keep the license clean for downstream users, this project follows a strict clean-room policy for everything borrowed from the competitive landscape:
 
 - **Every project referenced above is permissive-licensed** (MIT or Apache-2.0). No AGPL, GPL, SSPL, or other copyleft exposure.
   - RTK (rtk-ai/rtk): **Apache-2.0** — MIT-compatible; Apache patent grant is a bonus for us.

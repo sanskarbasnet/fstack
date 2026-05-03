@@ -268,7 +268,7 @@ describe('logAttempt', () => {
     });
     expect(ok).toBe(true);
 
-    const logPath = path.join(os.homedir(), '.gstack', 'security', 'attempts.jsonl');
+    const logPath = path.join(os.homedir(), '.fstack', 'security', 'attempts.jsonl');
     const content = fs.readFileSync(logPath, 'utf8');
     const lines = content.split('\n').filter(Boolean);
     const last = JSON.parse(lines[lines.length - 1]);

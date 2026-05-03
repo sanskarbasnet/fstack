@@ -26,7 +26,7 @@
   const Terminal = window.Terminal;
   const FitAddonModule = window.FitAddon;
   if (!Terminal) {
-    console.error('[gstack terminal] xterm not loaded');
+    console.error('[fstack terminal] xterm not loaded');
     return;
   }
 
@@ -94,19 +94,19 @@
   /**
    * Read auth + terminalPort from the server's /health. We don't fetch this
    * here — sidepanel.js already polls /health for connection state and
-   * exposes the relevant fields on window.gstackHealth (set below in init()).
+   * exposes the relevant fields on window.fstackHealth (set below in init()).
    * If terminalPort is missing, the agent isn't ready yet.
    */
   function getHealth() {
-    return window.gstackHealth || {};
+    return window.fstackHealth || {};
   }
 
   function getServerPort() {
-    return window.gstackServerPort || null;
+    return window.fstackServerPort || null;
   }
 
   function getAuthToken() {
-    return window.gstackAuthToken || null;
+    return window.fstackAuthToken || null;
   }
 
   /**
@@ -209,7 +209,7 @@
    * action so the user can drive claude from outside-the-keyboard surfaces.
    * Returns true if the bytes went out, false if no live session.
    */
-  window.gstackInjectToTerminal = function (text) {
+  window.fstackInjectToTerminal = function (text) {
     if (!text || !ws || ws.readyState !== WebSocket.OPEN) return false;
     try {
       ws.send(new TextEncoder().encode(text));
@@ -254,7 +254,7 @@
     // SameSite=Strict don't survive the jump from server.ts:34567 to the
     // agent's random port from a chrome-extension origin, so cookies
     // alone weren't reliable.
-    ws = new WebSocket(`ws://127.0.0.1:${terminalPort}/ws`, [`gstack-pty.${ptySessionToken}`]);
+    ws = new WebSocket(`ws://127.0.0.1:${terminalPort}/ws`, [`fstack-pty.${ptySessionToken}`]);
     ws.binaryType = 'arraybuffer';
 
     ws.addEventListener('open', () => {
@@ -306,7 +306,7 @@
     });
 
     ws.addEventListener('error', (err) => {
-      console.error('[gstack terminal] ws error', err);
+      console.error('[fstack terminal] ws error', err);
     });
   }
 
@@ -378,7 +378,7 @@
     // forward over the live PTY WebSocket; terminal-agent.ts writes
     // <stateDir>/active-tab.json + <stateDir>/tabs.json so claude can
     // always read the current tab landscape.
-    document.addEventListener('gstack:tab-state', (ev) => {
+    document.addEventListener('fstack:tab-state', (ev) => {
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       try {
         ws.send(JSON.stringify({
@@ -409,7 +409,7 @@
 
   /**
    * Eager-connect when the sidebar opens. Polls for sidepanel.js to populate
-   * window.gstackServerPort + window.gstackAuthToken (which it does as soon
+   * window.fstackServerPort + window.fstackAuthToken (which it does as soon
    * as /health succeeds), then fires connect() automatically. The user
    * doesn't have to press a key — Terminal is the default tab and "tap to
    * start" was a needless paper cut on every reload.

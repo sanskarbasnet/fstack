@@ -109,7 +109,7 @@ describe('welcome page served via HTTP', () => {
 
   test('hides sidebar prompt when extension is detected', () => {
     // Should listen for the extension-ready event
-    expect(html).toContain("'gstack-extension-ready'");
+    expect(html).toContain("'fstack-extension-ready'");
     // Should add 'hidden' class to sidebar-prompt
     expect(html).toContain("classList.add('hidden')");
   });
@@ -117,7 +117,7 @@ describe('welcome page served via HTTP', () => {
   test('does NOT auto-hide based on extension detection alone', () => {
     // The arrow should only hide when the sidebar actually opens,
     // not when the content script loads (which happens on every page)
-    expect(html).not.toContain('gstack-status-pill');
+    expect(html).not.toContain('fstack-status-pill');
     expect(html).not.toContain('checkPill');
   });
 

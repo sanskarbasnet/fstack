@@ -274,7 +274,7 @@ export async function judgeRecommendation(askUserText: string): Promise<Recommen
   const prompt = `You are scoring the quality of one specific line in an AskUserQuestion: the "Recommendation: <choice> because <reason>" line. Score the because-clause substance on a 1-5 scale.
 
 Rubric:
-- 5: Reason names a SPECIFIC TRADEOFF that distinguishes the chosen option from at least one alternative (e.g. "because hybrid ships V1 in gstack-only without blocking on cross-repo gbrain coordination", "because Postgres preserves ACID guarantees the workflow already depends on").
+- 5: Reason names a SPECIFIC TRADEOFF that distinguishes the chosen option from at least one alternative (e.g. "because hybrid ships V1 in fstack-only without blocking on cross-repo gbrain coordination", "because Postgres preserves ACID guarantees the workflow already depends on").
 - 4: Reason is concrete and option-specific but does NOT explicitly compare against an alternative (e.g. "because Redis gives sub-millisecond reads under load", "because the new schema removes the JOIN we were paying for").
 - 3: Reason is real but generic — could apply to many options ("because it's faster", "because it's simpler", "because it ships sooner").
 - 2: Reason restates the option label or is near-tautological ("because it's the hybrid one", "because that's the recommended approach").
