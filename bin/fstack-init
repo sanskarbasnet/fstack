@@ -1,24 +1,18 @@
 #!/usr/bin/env bash
-# fstack-init — bootstrap fstack in the current git repo
+# fstack-init — bootstrap fstack in the current git repo.
 #
 # Run ONCE inside each project repo where you want fstack to be visible to
-# Claude Code agents. Idempotent: re-running is safe.
+# Claude Code agents. Idempotent: re-running upgrades the section in place.
 #
 # What it does:
 #   1. Detects the canonical repo URL (origin remote)
-#   2. Appends a "## fstack" section to CLAUDE.md (or creates the file)
-#      with a link to the fstack repo + a one-line summary of routing
+#   2. Writes/upgrades a "## fstack" section in CLAUDE.md, fenced between
+#      <!-- fstack-init:start --> and <!-- fstack-init:end -->. Re-running
+#      replaces the section in place so users always have the latest content.
 #   3. Creates docs/decisions/ if missing (where /decide ADRs land)
-#   4. Prints the suggested git commit command
+#   4. Prints suggested git commit command — does NOT auto-commit.
 #
-# What it does NOT do:
-#   - Does NOT commit (you commit when you're ready)
-#   - Does NOT touch ~/.claude/settings.json (that's ./setup's job, global)
-#   - Does NOT install hooks per-repo (hooks are global, run once via ./setup)
-#   - Does NOT modify config.yaml (per-machine, set up by ./setup)
-#
-# Usage: cd into any git repo that you want fstack to know about, then run:
-#   fstack init
+# Usage: cd into a git repo, then run `fstack-init`.
 
 set -e
 
@@ -38,88 +32,169 @@ cd "$REPO_ROOT"
 # -----------------------------------------------------------------------------
 RAW_URL=$(git config --get remote.origin.url 2>/dev/null || true)
 if [ -z "$RAW_URL" ]; then
-  # Try first listed remote
   FIRST_REMOTE=$(git remote 2>/dev/null | head -1)
   if [ -n "$FIRST_REMOTE" ]; then
     RAW_URL=$(git config --get "remote.${FIRST_REMOTE}.url" 2>/dev/null || true)
   fi
 fi
 if [ -n "$RAW_URL" ]; then
-  # Normalize git@host:org/repo.git → host/org/repo
   CANONICAL=$(echo "$RAW_URL" | sed -e 's|^git@\([^:]*\):|\1/|' -e 's|^https\?://||' -e 's|\.git$||' -e 's|/$||')
 else
   CANONICAL="local:$REPO_ROOT"
 fi
 
 # -----------------------------------------------------------------------------
-# 3. Ensure CLAUDE.md has the fstack section
+# 3. Build the fstack section content
 # -----------------------------------------------------------------------------
-CLAUDE_MD="CLAUDE.md"
-MARKER="<!-- fstack-init -->"
+START_MARKER="<!-- fstack-init:start — DO NOT EDIT inside markers; re-run fstack-init to update -->"
+END_MARKER="<!-- fstack-init:end -->"
+LEGACY_MARKER="<!-- fstack-init -->"
 
-# Build the section content (heredoc'd so $CANONICAL interpolates)
 read -r -d '' FSTACK_SECTION <<EOF || true
-
-$MARKER
+$START_MARKER
 ## fstack
 
-This repo uses [fstack](https://github.com/sanskarbasnet/fstack) for shared multi-agent AI coordination. Hooks auto-fire at SessionStart, edits, prompts, and SessionEnd. Brain operations are scoped to **\`$CANONICAL\`**.
+This repo is **fstack-aware.** [fstack](https://github.com/sanskarbasnet/fstack) is a shared multi-agent memory layer for Claude Code — every agent's intents, decisions, edits, and handoffs land in a Supabase brain so teammates' AI sessions coordinate in real time.
 
-**Routing** — use these skills proactively when relevant:
+### For new contributors
 
-- New feature → \`/office-hours <topic>\` → \`/spec\` → \`/pursue\`
-- Pre-PR review → \`/review\`
-- Browser QA → \`/qa <url>\`
-- Security audit → \`/cso\`
-- Idea capture → \`/idea <text>\`
-- Debugging → \`/investigate\`
-- Stepping away → \`/handoff <note>\`
-- Merge conflict → \`/resolve\`
-- File history → \`/why <file>\` or \`/audit-trail <thing>\`
-- Lost? → \`/fstack-help\`
+1. Install fstack on your machine (one-time):
+   \`\`\`bash
+   git clone https://github.com/sanskarbasnet/fstack ~/.claude/skills/fstack
+   cd ~/.claude/skills/fstack
+   ./setup
+   \`\`\`
+2. Get the **brain URL + anon key** from a teammate via DM (never paste credentials in chat or commit them).
+3. \`./setup\` will prompt for them; that's it.
 
-ADR files written by \`/decide\` land in \`docs/decisions/\` (committed). Wishlist ideas captured by \`/idea\` land in the shared brain only — not in this repo.
+If \`fstack-help\` is on your PATH after \`./setup\`, you're connected.
+
+### For Claude Code agents working on this repo
+
+Hooks auto-fire — you do **not** need to invoke them:
+
+| Event | Auto-action |
+|---|---|
+| SessionStart | \`/sync\` digest of teammate activity |
+| Every user prompt | drafts intent + auto-coordinate (collision check) |
+| Every Edit/Write | logs to brain, refreshes presence |
+| Before \`git push\` | conflict-precheck against teammates' open intents |
+| SessionEnd | auto-handoff if uncommitted work exists |
+
+**You SHOULD proactively invoke these skills when the user's intent matches:**
+
+| User intent | Skill chain |
+|---|---|
+| "let's build X" / "add Y feature" | \`/office-hours <topic>\` → \`/spec\` → \`/pursue\` |
+| Ready to ship | \`/ship\` (auto-pre-checks regression overlap with teammates) |
+| Pre-PR review | \`/review\` (spawns 7 specialist subagents) |
+| Bug / regression | \`/investigate\` |
+| Browser QA / E2E | \`/qa <url>\` |
+| Security audit | \`/cso\` (OWASP + STRIDE) |
+| Merge conflict surfaced | \`/resolve\` (uses both branches' intents from brain) |
+| "why is this here?" | \`/why <file>\` (snapshot) or \`/audit-trail <thing>\` (timeline) |
+| User stepping away | \`/handoff <note>\` |
+| Idea pops up mid-coding | \`/idea <text>\` (terse capture, separate from intents) |
+| Reviewing backlog | \`/ideas\` |
+| CI failed | \`/fix-ci\` |
+| Need a non-obvious choice recorded | \`/decide <title>\` (writes ADR + brain row) |
+| Lost / what's available | \`/fstack-help\` |
+
+### Hard rules
+
+- Never \`git push\` without \`/ship\` — \`/ship\` runs the regression precheck the team relies on.
+- Never share the brain anon key in chat, docs, or commits — DM only.
+- ADR files (written by \`/decide\`) land in \`docs/decisions/\` and **are committed** with code changes.
+- Wishlist ideas (written by \`/idea\`) land in the **shared brain only** — not in this repo.
+- Don't manually edit anything inside the \`<!-- fstack-init:start -->\` / \`<!-- fstack-init:end -->\` markers — re-run \`fstack-init\` to update.
+
+### Brain scope
+
+This repo's brain context: **\`$CANONICAL\`**. \`/sync\`, \`/coordinate\`, etc. are all scoped here — work in other repos won't show up.
+$END_MARKER
 EOF
 
+# -----------------------------------------------------------------------------
+# 4. Write or upgrade CLAUDE.md
+# -----------------------------------------------------------------------------
+CLAUDE_MD="CLAUDE.md"
 CHANGED=0
+ACTION=""
 
 if [ -f "$CLAUDE_MD" ]; then
-  if grep -q "$MARKER" "$CLAUDE_MD"; then
-    echo "  ✓ $CLAUDE_MD already has fstack section (skipping)"
+  # Three cases:
+  #   a) Has the new fenced markers → replace the block between them
+  #   b) Has only the legacy single marker → strip everything from there to EOF, append new
+  #   c) Has no fstack content at all → append new
+
+  if grep -qF "$START_MARKER" "$CLAUDE_MD" && grep -qF "$END_MARKER" "$CLAUDE_MD"; then
+    # Case (a): replace fenced block in place
+    printf "%s" "$FSTACK_SECTION" | FSTACK_CLAUDE_MD="$CLAUDE_MD" FSTACK_START="$START_MARKER" FSTACK_END="$END_MARKER" python3 -c '
+import os, sys
+path  = os.environ["FSTACK_CLAUDE_MD"]
+start = os.environ["FSTACK_START"]
+end   = os.environ["FSTACK_END"]
+new_block = sys.stdin.read().rstrip()
+with open(path) as f: src = f.read()
+s = src.find(start)
+e = src.find(end)
+if s == -1 or e == -1 or e <= s:
+    sys.exit(0)
+head = src[:s].rstrip()
+tail = src[e+len(end):].lstrip()
+out = head + ("\n\n" if head else "") + new_block + ("\n\n" + tail if tail else "\n")
+with open(path, "w") as f: f.write(out)
+'
+    ACTION="upgraded"
+    CHANGED=1
+  elif grep -qF "$LEGACY_MARKER" "$CLAUDE_MD"; then
+    # Case (b): strip legacy section (from legacy marker to EOF), append new
+    FSTACK_CLAUDE_MD="$CLAUDE_MD" FSTACK_LEGACY="$LEGACY_MARKER" python3 -c '
+import os
+path   = os.environ["FSTACK_CLAUDE_MD"]
+marker = os.environ["FSTACK_LEGACY"]
+with open(path) as f: src = f.read()
+i = src.find(marker)
+if i != -1:
+    head = src[:i].rstrip() + "\n"
+    with open(path, "w") as f: f.write(head)
+'
+    printf "\n%s\n" "$FSTACK_SECTION" >> "$CLAUDE_MD"
+    ACTION="upgraded (replaced legacy section)"
+    CHANGED=1
   else
-    printf "%s\n" "$FSTACK_SECTION" >> "$CLAUDE_MD"
-    echo "  ✓ appended fstack section to $CLAUDE_MD"
+    # Case (c): no fstack content yet
+    printf "\n%s\n" "$FSTACK_SECTION" >> "$CLAUDE_MD"
+    ACTION="appended"
     CHANGED=1
   fi
+  echo "  ✓ $ACTION fstack section in $CLAUDE_MD"
 else
-  printf "# %s\n%s\n" "$(basename "$REPO_ROOT")" "$FSTACK_SECTION" > "$CLAUDE_MD"
+  printf "# %s\n\n%s\n" "$(basename "$REPO_ROOT")" "$FSTACK_SECTION" > "$CLAUDE_MD"
   echo "  ✓ created $CLAUDE_MD with fstack section"
   CHANGED=1
 fi
 
 # -----------------------------------------------------------------------------
-# 4. Ensure docs/decisions/ exists (where /decide writes ADR files)
+# 5. Ensure docs/decisions/ exists
 # -----------------------------------------------------------------------------
 if [ -d "docs/decisions" ]; then
   echo "  ✓ docs/decisions/ already exists"
 else
   mkdir -p docs/decisions
-  # Add a README so the empty dir is checked into git
   cat > docs/decisions/README.md <<EOF
 # Architecture Decision Records (ADRs)
 
-This directory holds ADRs written by fstack's \`/decide\` skill.
+Written by fstack's \`/decide\` skill. Each file is one decision — what we chose, why, the trade-off, and when to revisit. Searchable from the brain via \`fstack-brain decide search\`.
 
-Each file is one decision: what we chose, why, the trade-off, and when to revisit. Decisions are searchable from any agent's brain via \`fstack-brain decide search\`.
-
-Don't edit these by hand unless you're correcting a typo. To supersede a decision, write a new one that references it.
+Don't edit by hand except for typo fixes. Supersede a decision by writing a new one that references it.
 EOF
   echo "  ✓ created docs/decisions/ (with README)"
   CHANGED=1
 fi
 
 # -----------------------------------------------------------------------------
-# 5. Final report
+# 6. Final report
 # -----------------------------------------------------------------------------
 echo ""
 if [ "$CHANGED" -eq 1 ]; then
@@ -130,7 +205,7 @@ if [ "$CHANGED" -eq 1 ]; then
   echo "  git add CLAUDE.md docs/decisions"
   echo "  git commit -m 'chore: bootstrap fstack for AI coordination'"
 else
-  echo "fstack already initialized in $REPO_ROOT — nothing to do."
+  echo "fstack already initialized — nothing to do."
 fi
 echo ""
 echo "Open Claude Code in this repo and type /fstack-help to see all skills."
