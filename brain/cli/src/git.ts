@@ -17,15 +17,36 @@ export function currentBranch(cwd?: string): string | null {
   return b || null;
 }
 
-/** Canonical repo identity: 'github.com/org/name' (no scheme, no .git). */
+/**
+ * Canonical repo identity. Resolves in this order:
+ *   1. `git config remote.origin.url` (the standard case)
+ *   2. First remote returned by `git remote` (handles forks with upstream-only remotes)
+ *   3. `local:<absolute-path-to-repo-root>` (handles local-only repos with no remote)
+ *
+ * Returns null only if we're not in a git repo at all.
+ */
 export function canonicalRemote(cwd?: string): string | null {
-  const url = gitOut(["config", "--get", "remote.origin.url"], cwd);
-  if (!url) return null;
-  // git@github.com:foo/bar.git OR https://github.com/foo/bar.git OR https://github.com/foo/bar
-  let m = url.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
-  if (m) return `${m[1]}/${m[2]}`;
-  m = url.match(/^https?:\/\/([^/]+)\/(.+?)(?:\.git)?\/?$/);
-  if (m) return `${m[1]}/${m[2]}`;
+  // 1. origin
+  let url = gitOut(["config", "--get", "remote.origin.url"], cwd);
+
+  // 2. fall back to first listed remote
+  if (!url) {
+    const remotes = gitOut(["remote"], cwd).split("\n").filter(Boolean);
+    if (remotes.length > 0 && remotes[0]) {
+      url = gitOut(["config", "--get", `remote.${remotes[0]}.url`], cwd);
+    }
+  }
+
+  if (url) {
+    let m = url.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+    if (m) return `${m[1]}/${m[2]}`;
+    m = url.match(/^https?:\/\/([^/]+)\/(.+?)(?:\.git)?\/?$/);
+    if (m) return `${m[1]}/${m[2]}`;
+  }
+
+  // 3. local-only fallback
+  const root = repoRoot(cwd);
+  if (root) return `local:${root}`;
   return null;
 }
 

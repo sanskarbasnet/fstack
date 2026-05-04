@@ -13,11 +13,16 @@
  *   PreToolUse         → fstack-brain conflict-precheck
  *                          (matcher: Bash with command containing 'git push')
  *
+ * Hooks run in non-interactive shells that don't load ~/.bashrc, so we cannot
+ * rely on PATH lookup. Resolve the binary path once at install time and embed
+ * the absolute path into every hook command.
+ *
  * Atomic write: temp file + rename. Idempotent: dedups by command-substring match.
  *
  * Usage:
- *   bun hooks/install.ts            # install all
- *   bun hooks/install.ts --uninstall # remove all
+ *   bun hooks/install.ts                          # install all
+ *   bun hooks/install.ts --uninstall              # remove all
+ *   FSTACK_BRAIN_BIN=/path/to/bin bun hooks/install.ts   # override binary path
  */
 
 import {
@@ -36,57 +41,62 @@ type HookEntry = {
 };
 type Settings = {
   hooks?: Record<string, HookEntry[]>;
+  env?: Record<string, string>;
   [k: string]: unknown;
 };
 
 const FILE = process.env.FSTACK_SETTINGS_FILE ?? `${homedir()}/.claude/settings.json`;
 
-// The exact commands we install.
-// IMPORTANT: keep "fstack-brain" in each so dedup substring-match works.
+// Absolute path to fstack-brain. Hooks/agents run in non-interactive shells that
+// don't load ~/.bashrc, so we cannot rely on PATH lookup. Resolve once at
+// install time and embed the absolute path into every hook command.
+const BRAIN = process.env.FSTACK_BRAIN_BIN ?? `${homedir()}/.local/bin/fstack-brain`;
+
+// The exact commands we install. Signature substrings are reused for dedup
+// and uninstall — keep them stable.
 const HOOKS: Array<{
   event: string;
   matcher?: string;
   command: string;
-  /** Used for dedup: any existing hook whose command contains this string is treated as us. */
   signature: string;
 }> = [
   {
     event: "SessionStart",
-    command: "fstack-brain sync",
+    command: `${BRAIN} sync`,
     signature: "fstack-brain sync",
   },
   {
     event: "SessionEnd",
-    command: "fstack-brain handoff auto",
+    command: `${BRAIN} handoff auto`,
     signature: "fstack-brain handoff auto",
   },
   {
     event: "UserPromptSubmit",
-    command: 'fstack-brain intent infer --prompt "${CLAUDE_USER_PROMPT:-}"',
+    command: `${BRAIN} intent infer --prompt "\${CLAUDE_USER_PROMPT:-}"`,
     signature: "fstack-brain intent infer",
   },
   {
     event: "PostToolUse",
     matcher: "Edit",
-    command: 'fstack-brain log-edit --op edit --file "${CLAUDE_TOOL_INPUT_FILE_PATH:-}"',
+    command: `${BRAIN} log-edit --op edit --file "\${CLAUDE_TOOL_INPUT_FILE_PATH:-}"`,
     signature: "fstack-brain log-edit",
   },
   {
     event: "PostToolUse",
     matcher: "Write",
-    command: 'fstack-brain log-edit --op write --file "${CLAUDE_TOOL_INPUT_FILE_PATH:-}"',
+    command: `${BRAIN} log-edit --op write --file "\${CLAUDE_TOOL_INPUT_FILE_PATH:-}"`,
     signature: "fstack-brain log-edit",
   },
   {
     event: "PostToolUse",
     matcher: "MultiEdit",
-    command: 'fstack-brain log-edit --op edit --file "${CLAUDE_TOOL_INPUT_FILE_PATH:-}"',
+    command: `${BRAIN} log-edit --op edit --file "\${CLAUDE_TOOL_INPUT_FILE_PATH:-}"`,
     signature: "fstack-brain log-edit",
   },
   {
     event: "PreToolUse",
     matcher: "Bash:git push*",
-    command: "fstack-brain conflict-precheck",
+    command: `${BRAIN} conflict-precheck`,
     signature: "fstack-brain conflict-precheck",
   },
 ];
@@ -114,8 +124,12 @@ function ensureEvent(settings: Settings, event: string): HookEntry[] {
   return settings.hooks[event]!;
 }
 
-function dedup(entries: HookEntry[], signature: string, matcher?: string): boolean {
-  // returns true if an entry with this signature+matcher already exists
+/** True if any existing entry matches our signature for this event+matcher. */
+function existsWithSignature(
+  entries: HookEntry[],
+  signature: string,
+  matcher?: string
+): boolean {
   for (const entry of entries) {
     if ((entry.matcher ?? "") !== (matcher ?? "")) continue;
     for (const h of entry.hooks ?? []) {
@@ -125,21 +139,54 @@ function dedup(entries: HookEntry[], signature: string, matcher?: string): boole
   return false;
 }
 
-function install(): number {
+/** Replace any existing entry whose command matches signature with our new command. */
+function upsertEntry(
+  entries: HookEntry[],
+  signature: string,
+  matcher: string | undefined,
+  newCommand: string
+): "added" | "replaced" | "unchanged" {
+  for (const entry of entries) {
+    if ((entry.matcher ?? "") !== (matcher ?? "")) continue;
+    for (const h of entry.hooks ?? []) {
+      if (h.command && h.command.includes(signature)) {
+        if (h.command === newCommand) return "unchanged";
+        h.command = newCommand;
+        return "replaced";
+      }
+    }
+  }
+  const newEntry: HookEntry = {
+    hooks: [{ type: "command", command: newCommand }],
+  };
+  if (matcher) newEntry.matcher = matcher;
+  entries.push(newEntry);
+  return "added";
+}
+
+function ensureEnv(settings: Settings): void {
+  // Add ~/.local/bin and ~/.bun/bin to PATH for the Bash tool's subshell
+  // (skills shell out to fstack-brain too).
+  const localBin = `${homedir()}/.local/bin`;
+  const bunBin = `${homedir()}/.bun/bin`;
+  if (!settings.env) settings.env = {};
+  const current = settings.env.PATH ?? "${PATH}";
+  if (!current.includes(localBin) || !current.includes(bunBin)) {
+    settings.env.PATH = `${localBin}:${bunBin}:${current.includes("$") ? current : "${PATH}"}`;
+  }
+}
+
+function install(): { added: number; replaced: number; unchanged: number } {
   const settings = loadSettings();
-  let added = 0;
+  ensureEnv(settings);
+  const stats = { added: 0, replaced: 0, unchanged: 0 };
   for (const h of HOOKS) {
     const entries = ensureEvent(settings, h.event);
-    if (dedup(entries, h.signature, h.matcher)) continue;
-    const entry: HookEntry = {
-      hooks: [{ type: "command", command: h.command }],
-    };
-    if (h.matcher) entry.matcher = h.matcher;
-    entries.push(entry);
-    added++;
+    const result = upsertEntry(entries, h.signature, h.matcher, h.command);
+    stats[result]++;
   }
   saveSettings(settings);
-  return added;
+  return stats;
 }
 
 function uninstall(): number {
@@ -174,6 +221,9 @@ if (args.includes("--uninstall")) {
   const n = uninstall();
   console.log(`fstack hooks: removed ${n} entries from ${FILE}`);
 } else {
-  const n = install();
-  console.log(`fstack hooks: installed ${n} new entries in ${FILE}`);
+  const stats = install();
+  console.log(
+    `fstack hooks: ${stats.added} added, ${stats.replaced} replaced, ${stats.unchanged} unchanged in ${FILE}`
+  );
+  console.log(`              binary path embedded: ${BRAIN}`);
 }

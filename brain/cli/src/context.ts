@@ -26,7 +26,7 @@ export async function buildCtx(): Promise<Ctx> {
   const canonical = canonicalRemote();
   if (!canonical) {
     throw new Error(
-      "fstack: no git remote 'origin' found. fstack requires a git repo with origin set."
+      "fstack: not inside a git repo. fstack-brain operates per-repo; cd into one and try again."
     );
   }
   const branchName = currentBranch() ?? "HEAD";
