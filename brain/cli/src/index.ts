@@ -38,6 +38,7 @@ import { standupCmd } from "./commands/standup.ts";
 import { whyCmd } from "./commands/why.ts";
 import { flushCmd, queueStatusCmd } from "./commands/flush.ts";
 import { handoffPickup } from "./commands/pickup.ts";
+import { coordinate } from "./commands/coordinate.ts";
 
 function parseArgs(rest: string[]): Record<string, string | true> {
   const out: Record<string, string | true> = {};
@@ -82,6 +83,7 @@ Commands:
   decide search --query Q [--limit N]
   standup [--window day|week]
   why --target P
+  coordinate --topic "<text>"         scan brain for collisions before coding
   flush                               manually drain the local write queue
   queue                               show local queue depth
 `;
@@ -180,6 +182,8 @@ async function main() {
         return await flushCmd();
       case "queue":
         return await queueStatusCmd();
+      case "coordinate":
+        return await coordinate({ topic: str(args.topic) });
       default:
         process.stdout.write(HELP);
         process.exit(2);
