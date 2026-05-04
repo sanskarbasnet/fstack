@@ -1,11 +1,20 @@
-import { buildCtx } from "../context.ts";
+import { buildCtxFull } from "../context.ts";
+import { ensureRepo, ensureBranch, ensureFile } from "../client.ts";
+import { defaultBranch } from "../git.ts";
+import { drainQueue } from "../queue.ts";
 import { emit } from "../output.ts";
 
 /**
  * standup --window day|week — weekly/daily activity digest.
  */
 export async function standupCmd(args: { window?: "day" | "week" }) {
-  const ctx = await buildCtx();
+  const ctx = await buildCtxFull();
+  await drainQueue(
+    ctx.db,
+    async (c) => ensureRepo(ctx.db, c, defaultBranch()),
+    async (r, b) => ensureBranch(ctx.db, r, b),
+    async (r, p) => ensureFile(ctx.db, r, p)
+  );
   const now = new Date();
   const since = new Date(now);
   since.setDate(since.getDate() - (args.window === "week" ? 7 : 1));

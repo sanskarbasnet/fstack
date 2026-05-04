@@ -1,4 +1,4 @@
-import { buildCtx } from "../context.ts";
+import { buildCtxFull } from "../context.ts";
 import {
   activeIntentForBranch,
   listOtherActiveIntents,
@@ -17,7 +17,7 @@ import { emit } from "../output.ts";
 export async function conflictPrecheck() {
   let ctx;
   try {
-    ctx = await buildCtx();
+    ctx = await buildCtxFull();
   } catch {
     // Not in a repo / no config — silent pass-through.
     emit("(precheck skipped — no fstack context)", { ok: true, skipped: true });

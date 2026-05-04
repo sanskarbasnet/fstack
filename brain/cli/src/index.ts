@@ -36,6 +36,7 @@ import { presenceShow } from "./commands/presence.ts";
 import { decideWrite, decideSearch } from "./commands/decide.ts";
 import { standupCmd } from "./commands/standup.ts";
 import { whyCmd } from "./commands/why.ts";
+import { flushCmd, queueStatusCmd } from "./commands/flush.ts";
 
 function parseArgs(rest: string[]): Record<string, string | true> {
   const out: Record<string, string | true> = {};
@@ -79,6 +80,8 @@ Commands:
   decide search --query Q [--limit N]
   standup [--window day|week]
   why --target P
+  flush                               manually drain the local write queue
+  queue                               show local queue depth
 `;
 
 async function main() {
@@ -169,6 +172,10 @@ async function main() {
         });
       case "why":
         return await whyCmd({ target: str(args.target) });
+      case "flush":
+        return await flushCmd();
+      case "queue":
+        return await queueStatusCmd();
       default:
         process.stdout.write(HELP);
         process.exit(2);

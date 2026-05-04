@@ -38,10 +38,14 @@ mkdir -p dist
 bun build ./src/index.ts --compile --outfile dist/fstack-brain --target=bun
 cd "$FSTACK_ROOT"
 
-# 3. Symlink binary
+# 3. Install binary on native filesystem (cp, not symlink)
+# A symlink to /mnt/<windows-drive>/ on WSL costs ~800ms per invocation
+# loading the 88MB binary across the WSL fs boundary. cp to ~/.local/bin
+# (native ext4) drops cold-start to ~40ms.
 mkdir -p "$(dirname "$BIN_TARGET")"
-ln -sf "$CLI_DIR/dist/fstack-brain" "$BIN_TARGET"
-log "linked $CLI_DIR/dist/fstack-brain → $BIN_TARGET"
+cp -f "$CLI_DIR/dist/fstack-brain" "$BIN_TARGET"
+chmod +x "$BIN_TARGET"
+log "installed $BIN_TARGET (copied from $CLI_DIR/dist/fstack-brain)"
 
 # Verify on PATH
 if ! command -v fstack-brain >/dev/null 2>&1; then

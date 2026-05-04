@@ -1,9 +1,14 @@
-import { buildCtx } from "../context.ts";
+import { buildCtxFull } from "../context.ts";
 import {
   liveOtherPresence,
   listOtherActiveIntents,
   openHandoffs,
+  ensureRepo,
+  ensureBranch,
+  ensureFile,
 } from "../client.ts";
+import { defaultBranch } from "../git.ts";
+import { drainQueue } from "../queue.ts";
 import { emit } from "../output.ts";
 
 /**
@@ -16,7 +21,7 @@ import { emit } from "../output.ts";
 export async function syncCmd() {
   let ctx;
   try {
-    ctx = await buildCtx();
+    ctx = await buildCtxFull();
   } catch (err: any) {
     const msg = String(err?.message ?? err);
     // Not in a git repo — silent skip; this is a normal SessionStart case.
@@ -29,6 +34,14 @@ export async function syncCmd() {
     }
     throw err;
   }
+
+  // Drain any local writes queued since last read so they show up below.
+  await drainQueue(
+    ctx.db,
+    async (c) => ensureRepo(ctx.db, c, defaultBranch()),
+    async (r, b) => ensureBranch(ctx.db, r, b),
+    async (r, p) => ensureFile(ctx.db, r, p)
+  );
 
   // Stale-presence sweep so we don't show ghosts.
   await ctx.db.rpc("expire_stale_presence", {

@@ -1,12 +1,25 @@
-import { buildCtx } from "../context.ts";
-import { liveOtherPresence } from "../client.ts";
+import { buildCtxFull } from "../context.ts";
+import {
+  liveOtherPresence,
+  ensureRepo,
+  ensureBranch,
+  ensureFile,
+} from "../client.ts";
+import { defaultBranch } from "../git.ts";
+import { drainQueue } from "../queue.ts";
 import { emit } from "../output.ts";
 
 /**
  * presence — show live presence of other agents in this repo.
  */
 export async function presenceShow() {
-  const ctx = await buildCtx();
+  const ctx = await buildCtxFull();
+  await drainQueue(
+    ctx.db,
+    async (c) => ensureRepo(ctx.db, c, defaultBranch()),
+    async (r, b) => ensureBranch(ctx.db, r, b),
+    async (r, p) => ensureFile(ctx.db, r, p)
+  );
   const others = await liveOtherPresence(ctx.db, {
     agentId: ctx.cfg.agent_id,
     repoId: ctx.repoId,

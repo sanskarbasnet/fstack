@@ -1,23 +1,51 @@
-import { buildCtx } from "../context.ts";
-import {
-  activeIntentForBranch,
-  writeIntent as writeIntentRow,
-} from "../client.ts";
+import { buildCtx, buildCtxFull } from "../context.ts";
+import { activeIntentForBranch, ensureRepo, ensureBranch, ensureFile } from "../client.ts";
 import { emit } from "../output.ts";
+import { defaultBranch } from "../git.ts";
+import {
+  enqueue,
+  drainQueue,
+  getCachedIntent,
+  setCachedIntent,
+} from "../queue.ts";
 
 /**
- * intent get — return current active intent for this branch.
+ * intent get — local-first.
+ *
+ * Reads from the local intent cache (set by every intent write/infer). If the
+ * cache has no entry for this branch, fall back to Supabase.
  */
 export async function intentGet() {
-  const ctx = await buildCtx();
-  const intent = await activeIntentForBranch(ctx.db, ctx.cfg.agent_id, ctx.branchId);
+  // Fast path: pure local-cache lookup, no Supabase.
+  const ctxLite = buildCtx();
+  let intent = getCachedIntent(
+    ctxLite.repoCanonical,
+    ctxLite.branchName,
+    ctxLite.cfg.agent_id
+  );
+
+  if (!intent) {
+    // Cache miss → upgrade to full context, drain, fall back to Supabase
+    const ctx = await buildCtxFull();
+    await drainQueue(
+      ctx.db,
+      async (c) => ensureRepo(ctx.db, c, defaultBranch()),
+      async (r, b) => ensureBranch(ctx.db, r, b),
+      async (r, p) => ensureFile(ctx.db, r, p)
+    );
+    intent = await activeIntentForBranch(ctx.db, ctx.cfg.agent_id, ctx.branchId);
+    if (intent) {
+      setCachedIntent(ctx.repoCanonical, ctx.branchName, ctx.cfg.agent_id, intent);
+    }
+  }
+
   if (!intent) {
     emit("(no active intent)", { ok: true, intent: null });
     return;
   }
   emit(
     [
-      `Active intent on ${ctx.branchName}:`,
+      `Active intent on ${ctxLite.branchName}:`,
       `  ${intent.title}`,
       intent.body ? `  ${intent.body}` : "",
       intent.promises ? `  PROMISES: ${intent.promises}` : "",
@@ -30,8 +58,10 @@ export async function intentGet() {
 }
 
 /**
- * intent write — explicit write (called by /intent slash command).
- * If an active intent exists for this branch, it is paused.
+ * intent write — local-first.
+ *
+ * Writes to local cache + queues brain insert. If a prior active intent
+ * exists for this branch, queue a status='paused' update.
  */
 export async function intentWrite(args: {
   title?: string;
@@ -44,36 +74,54 @@ export async function intentWrite(args: {
     emit("intent write: --title required", { ok: false });
     process.exit(2);
   }
-  const ctx = await buildCtx();
+  const ctx = buildCtx();
 
-  // Pause any prior active intent on this branch.
-  const existing = await activeIntentForBranch(ctx.db, ctx.cfg.agent_id, ctx.branchId);
-  if (existing) {
-    await ctx.db
-      .from("intents")
-      .update({ status: "paused" })
-      .eq("id", existing.id);
+  // Pause any prior active intent (queued)
+  const existing = getCachedIntent(ctx.repoCanonical, ctx.branchName, ctx.cfg.agent_id);
+  if (existing?.id) {
+    enqueue({ op: "intent_pause", payload: { intent_id: existing.id } });
   }
 
-  const intent = await writeIntentRow(ctx.db, {
-    agentId: ctx.cfg.agent_id,
-    repoId: ctx.repoId,
-    branchId: ctx.branchId,
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const intent = {
+    id,
+    agent_id: ctx.cfg.agent_id,
+    repo_id: ctx.repoId,
+    branch_id: ctx.branchId,
     title: args.title,
-    body: args.body,
-    promises: args.promises,
-    notTouching: args.notTouching,
+    body: args.body ?? null,
+    promises: args.promises ?? null,
+    not_touching: args.notTouching ?? null,
     inferred: args.inferred ?? false,
+    status: "active",
+    created_at: now,
+    updated_at: now,
+  };
+
+  // Write local cache (authoritative for this writer)
+  setCachedIntent(ctx.repoCanonical, ctx.branchName, ctx.cfg.agent_id, intent);
+
+  // Queue brain insert
+  enqueue({
+    op: "intent_write",
+    payload: {
+      ...intent,
+      repo_canonical: ctx.repoCanonical,
+      branch_name: ctx.branchName,
+    },
   });
-  emit(`intent ok — '${intent.title}' on ${ctx.branchName}`, {
+
+  emit(`intent ok — '${intent.title}' on ${ctx.branchName} [queued for brain]`, {
     ok: true,
     intent,
+    queued: true,
   });
 }
 
 /**
- * intent infer — used by UserPromptSubmit hook.
- * Only writes a stub if no active intent exists. Title comes from --prompt.
+ * intent infer — local-first stub from a user prompt. Only writes if no
+ * active intent for this branch in the cache.
  */
 export async function intentInfer(args: { prompt?: string }) {
   if (!args.prompt) {
@@ -85,10 +133,9 @@ export async function intentInfer(args: { prompt?: string }) {
   }
   let ctx;
   try {
-    ctx = await buildCtx();
+    ctx = buildCtx();
   } catch (err: any) {
-    const msg = String(err?.message ?? err);
-    if (msg.includes("not inside a git repo")) {
+    if (String(err?.message ?? "").includes("not inside a git repo")) {
       emit("intent infer: skipped (not in a git repo)", {
         ok: true,
         skipped: "no-repo",
@@ -97,7 +144,8 @@ export async function intentInfer(args: { prompt?: string }) {
     }
     throw err;
   }
-  const existing = await activeIntentForBranch(ctx.db, ctx.cfg.agent_id, ctx.branchId);
+
+  const existing = getCachedIntent(ctx.repoCanonical, ctx.branchName, ctx.cfg.agent_id);
   if (existing) {
     emit(`intent infer: existing active intent — '${existing.title}'`, {
       ok: true,
@@ -105,17 +153,33 @@ export async function intentInfer(args: { prompt?: string }) {
     });
     return;
   }
-  // First substantive prompt of the session — draft an intent stub.
-  // Title = first line of prompt, max 120 chars. Agent confirms via /intent later.
+
   const firstLine = args.prompt.split("\n")[0]?.trim() ?? args.prompt.trim();
   const title = firstLine.slice(0, 120);
-  const intent = await writeIntentRow(ctx.db, {
-    agentId: ctx.cfg.agent_id,
-    repoId: ctx.repoId,
-    branchId: ctx.branchId,
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const intent = {
+    id,
+    agent_id: ctx.cfg.agent_id,
+    repo_id: ctx.repoId,
+    branch_id: ctx.branchId,
     title,
     body: args.prompt.trim().slice(0, 1500),
+    promises: null,
+    not_touching: null,
     inferred: true,
+    status: "active",
+    created_at: now,
+    updated_at: now,
+  };
+  setCachedIntent(ctx.repoCanonical, ctx.branchName, ctx.cfg.agent_id, intent);
+  enqueue({
+    op: "intent_write",
+    payload: {
+      ...intent,
+      repo_canonical: ctx.repoCanonical,
+      branch_name: ctx.branchName,
+    },
   });
   emit(`intent inferred — '${intent.title}' (stub; refine with /intent)`, {
     ok: true,
@@ -124,22 +188,32 @@ export async function intentInfer(args: { prompt?: string }) {
 }
 
 /**
- * intent ship — mark intent as shipped (called by /ship after PR creation).
+ * intent ship — mark intent as shipped. Update local cache + queue brain update.
  */
 export async function intentShip(args: { prUrl?: string }) {
-  const ctx = await buildCtx();
-  const existing = await activeIntentForBranch(ctx.db, ctx.cfg.agent_id, ctx.branchId);
+  const ctx = buildCtx();
+  const existing = getCachedIntent(
+    ctx.repoCanonical,
+    ctx.branchName,
+    ctx.cfg.agent_id
+  );
   if (!existing) {
     emit("intent ship: no active intent", { ok: false });
     return;
   }
-  await ctx.db
-    .from("intents")
-    .update({
-      status: "shipped",
-      shipped_at: new Date().toISOString(),
+  const shippedAt = new Date().toISOString();
+  // Drop from local active cache (it's no longer active)
+  setCachedIntent(ctx.repoCanonical, ctx.branchName, ctx.cfg.agent_id, null);
+  enqueue({
+    op: "intent_ship",
+    payload: {
+      intent_id: existing.id,
+      shipped_at: shippedAt,
       pr_url: args.prUrl ?? null,
-    })
-    .eq("id", existing.id);
-  emit(`intent shipped — '${existing.title}'`, { ok: true, intent_id: existing.id });
+    },
+  });
+  emit(`intent shipped — '${existing.title}' [queued for brain]`, {
+    ok: true,
+    intent_id: existing.id,
+  });
 }

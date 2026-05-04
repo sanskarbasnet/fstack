@@ -1,6 +1,8 @@
-import { buildCtx } from "../context.ts";
+import { buildCtxFull } from "../context.ts";
 import { emit } from "../output.ts";
-import { ensureFile } from "../client.ts";
+import { ensureFile, ensureRepo, ensureBranch } from "../client.ts";
+import { defaultBranch } from "../git.ts";
+import { drainQueue } from "../queue.ts";
 import { relative, isAbsolute } from "node:path";
 
 /**
@@ -11,7 +13,13 @@ export async function whyCmd(args: { target?: string }) {
     emit("why: target file required", { ok: false });
     process.exit(2);
   }
-  const ctx = await buildCtx();
+  const ctx = await buildCtxFull();
+  await drainQueue(
+    ctx.db,
+    async (c) => ensureRepo(ctx.db, c, defaultBranch()),
+    async (r, b) => ensureBranch(ctx.db, r, b),
+    async (r, p) => ensureFile(ctx.db, r, p)
+  );
   const path = isAbsolute(args.target)
     ? relative(ctx.cwd, args.target)
     : args.target;
