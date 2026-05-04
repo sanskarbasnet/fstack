@@ -42,9 +42,9 @@ $$ language plpgsql;
 -- FIRST-CLASS ENTITIES
 -- =============================================================================
 
--- agents: humans (sanskar, owen) — one row per person
+-- agents: humans on the team — one row per person
 create table if not exists fstack.agents (
-  id            text primary key,                 -- 'sanskar', 'owen'
+  id            text primary key,                 -- the handle, e.g. 'alice'
   display_name  text not null,
   email         text,
   created_at    timestamptz not null default now()
@@ -53,7 +53,7 @@ create table if not exists fstack.agents (
 -- repos: every row is keyed to a repo (canonical github.com/org/name form)
 create table if not exists fstack.repos (
   id            uuid primary key default gen_random_uuid(),
-  canonical     text unique not null,             -- 'github.com/foreman/marketplace'
+  canonical     text unique not null,             -- e.g. 'github.com/org/repo'
   default_branch text not null default 'main',
   created_at    timestamptz not null default now()
 );
@@ -86,7 +86,7 @@ create index if not exists files_repo_path_idx on fstack.files(repo_id, path);
 create table if not exists fstack.branches (
   id            uuid primary key default gen_random_uuid(),
   repo_id       uuid not null references fstack.repos(id) on delete cascade,
-  name          text not null,                    -- 'sanskar/rate-limit'
+  name          text not null,                    -- e.g. 'alice/rate-limit'
   base          text not null default 'main',
   created_at    timestamptz not null default now(),
   unique (repo_id, name)
