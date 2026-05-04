@@ -1,89 +1,106 @@
 # fstack
 
-> **fstack = Foreman's hard-fork of [garrytan/gstack](https://github.com/garrytan/gstack), stripped to its production-grade machinery, plus a shared multi-agent brain for live coordination between Sanskar and Owen.**
+> A Claude Code skill pack with a shared multi-agent brain, so teammates' AI sessions can coordinate in real time. Hard fork of [garrytan/gstack](https://github.com/garrytan/gstack).
 
-## What fstack is
+## What it does
 
-A Claude Code skill pack and CLI for an internal two-person engineering team. fstack:
+When two or more developers code with Claude Code on the same project, their agents normally have no idea what the other is doing. Stomped commits, silent regressions, duplicate work. fstack adds a shared memory layer (a Supabase brain) that every agent reads from and writes to: who's editing what, who decided what, who handed off what.
 
-- Inherits gstack's battle-tested **production skills** (`/review`, `/qa`, `/browse`, `/codex`, `/cso`, `/canary`, `/document-release`, `/benchmark`, `/careful`, `/scrape`, `/skillify`, `/health`, etc.).
-- Inherits gstack's **browser stack** (headless Chromium daemon + visible fstack-browser fork with anti-bot stealth, sidebar AI, cookie keychain import).
-- Replaces gstack's single-agent productivity layer with **fstack brain** — a shared Supabase-backed coordination layer that knows what every agent is doing in real time.
-- Adds 10 fstack-original skills that exploit the brain: `/sync`, `/intent`, `/presence`, `/handoff`, `/resolve`, `/decide`, `/standup`, `/office-hours`, `/office-review`, `/why`.
-- Drops everything that doesn't fit a near-launch MVP: greenfield planning skills, gbrain, telemetry-to-upstream, team mode auto-update.
+It also ships ~44 slash commands covering the daily loop: brainstorm, spec, build autonomously, review, ship, debug, audit. Most of them inherited from gstack and proven; some are fstack-original and built around the brain.
 
-Pinned to gstack at upstream commit `bf65487` (v1.26.0.0). See `UPSTREAM_SYNCS.md` for cherry-pick log.
+The piece that earns its keep most often: `/resolve`. When git surfaces a merge conflict, fstack pulls the **intents** both branches recorded when their authors started work, and proposes a merge that knows what each side was trying to do. That's the difference between "an AI guessed at two text blobs" and "an AI knows the contract on each side."
 
-## Why this exists
+## Skill inventory
 
-You and Owen both use Claude Code for ~100% of coding. Stock Claude has no shared state across sessions. Two agents stomping on the same code, silent feature regressions, no visibility into what each other is doing. fstack solves this by making intent + presence + decisions first-class data the brain stores.
+44 skills total. Categorized by where they came from and whether the agent fires them automatically or you type them.
 
-The killer feature: `/resolve`. When git surfaces a merge conflict, fstack pulls **both** branches' intents from the brain and proposes a resolution that knows what each side was trying to do — not "Claude guesses two text blobs."
+### fstack-original (22)
 
-## The skill inventory (~27 skills)
+Coordination: `/sync` `/intent` `/presence` `/handoff` `/resolve` `/decide` `/standup` `/why` `/audit-trail`
+Brainstorm + build: `/office-hours` `/office-review` `/spec` `/pursue` `/blame`
+Proactive: `/coordinate` `/touch` `/parallel` `/pickup`
+Wishlist: `/idea` `/ideas`
+Help / fix: `/fstack-help` `/fix-ci`
 
-### fstack-original (10)
-`/sync`  `/intent`  `/presence`  `/handoff`  `/resolve`  `/decide`  `/standup`  `/office-hours`  `/office-review`  `/why`
+### Modified gstack (7)
 
-### Modified gstack skills (7) — brain-aware
-`/ship`  `/land-and-deploy`  `/freeze`  `/guard`  `/retro`  `/skillify`  `/queue`
+Brain-aware overlays on top of inherited skills: `/ship` `/land-and-deploy` `/freeze` `/guard` `/retro` `/skillify` `/queue`
 
-### Untouched gstack skills (15)
-`/review`  `/investigate`  `/qa`  `/qa-only`  `/browse`  `/setup-browser-cookies`  `/codex`  `/cso`  `/canary`  `/document-release`  `/benchmark`  `/careful`  `/unfreeze`  `/scrape`  `/health`
+### Untouched gstack (15)
+
+Production-grade as-is: `/review` `/investigate` `/qa` `/qa-only` `/browse` `/setup-browser-cookies` `/codex` `/cso` `/canary` `/document-release` `/benchmark` `/careful` `/unfreeze` `/scrape` `/health`
+
+Type `/fstack-help` inside Claude Code for the full live list with usage notes.
 
 ## Install
 
 ### Prerequisites
+
 - Claude Code installed
 - Bun ≥1.0
 - Git
-- A Supabase project (free tier is fine)
+- A Supabase project (free tier works)
 
 ### One-time team setup
 
-1. Create a Supabase project. Apply `brain/schema.sql` via the SQL editor.
-2. Enable Realtime on the `fstack_realtime` publication (Database → Replication).
-3. Note the **Session Pooler** connection string (port 6543) and **anon key**.
+If your team has no shared brain yet, one person does this once:
 
-### Per-machine
+1. Create a Supabase project. Paste `brain/schema.sql` into the SQL editor and run it.
+2. Apply any migrations from `brain/migrations/` in order.
+3. Database → API → Exposed schemas: add `fstack`.
+4. Database → Replication: enable the `fstack_realtime` publication.
+5. Note the project URL and the **anon public** key.
+6. DM the URL and key to teammates. Never put them in chat or commits.
+
+### Per machine
+
+Each teammate runs this once on their own machine:
 
 ```bash
-# clone fstack
-git clone git@github.com:foreman/fstack.git ~/.claude/skills/fstack
+git clone https://github.com/sanskarbasnet/fstack ~/.claude/skills/fstack
 cd ~/.claude/skills/fstack
-
-# install (handles browser daemon, brain CLI, hooks, config)
 ./setup
 ```
 
-`./setup` will prompt for `agent_id` (sanskar or owen), the Supabase URL, and the anon key. Configuration lives at `~/.fstack/config.yaml` (mode 600).
+`./setup` builds the brain CLI binary, symlinks all skills into `~/.claude/skills/`, installs Claude Code hooks, and prompts for `agent_id` plus the brain credentials. Config lives at `~/.fstack/config.yaml` (mode 600).
 
-After setup, open Claude Code in any git repo and type `/sync` — you should see the team digest.
+### Per project
 
-## Architecture (one diagram)
+In each project repo where you want fstack to be visible to Claude Code agents:
 
-```
-   ┌─────────────────────┐               ┌─────────────────────┐
-   │ Sanskar's CC agent  │               │   Owen's CC agent   │
-   └──────────┬──────────┘               └──────────┬──────────┘
-              │   intent / edits / presence (heartbeat)
-              ▼                                     ▼
-        ┌─────────────────────────────────────────────────┐
-        │   Shared brain (Supabase + Realtime)            │
-        │   intents, presence, edits, decisions,          │
-        │   handoffs, files, features                     │
-        └─────────────────────────────────────────────────┘
-              ▲                                     ▲
-              │   read by /sync, /resolve, /office-hours, ...
-              │
-   ┌──────────┴───────────────┐
-   │  GitHub (source of truth │
-   │  for code; brain stores  │
-   │  intent + reasoning)     │
-   └──────────────────────────┘
+```bash
+cd ~/code/your-project
+fstack-init
 ```
 
-For schema and design rationale, see `ARCHITECTURE.md`. For the gstack heritage, see `UPSTREAM_SYNCS.md`.
+`fstack-init` is idempotent. It writes a `## fstack` section into `CLAUDE.md` with the repo's brain scope, creates `docs/decisions/` for ADR files, and prints a `git add` / `git commit` command. Commit when ready. Once committed, anyone cloning the repo afterwards gets the section for free.
+
+After all of that, open Claude Code in any git repo and type `/sync`. The team digest auto-fires at session start, but `/sync` is a safe verify.
+
+## Architecture
+
+```
+   ┌──────────────────┐                      ┌──────────────────┐
+   │  Agent A (CC)    │                      │  Agent B (CC)    │
+   └────────┬─────────┘                      └─────────┬────────┘
+            │  intent / edits / presence (heartbeat)   │
+            ▼                                          ▼
+        ┌──────────────────────────────────────────────────┐
+        │  Shared brain (Supabase + Realtime)              │
+        │  intents, presence, edits, decisions,            │
+        │  handoffs, files, features, wishlist             │
+        └──────────────────────────────────────────────────┘
+            ▲                                          ▲
+            │  /sync, /resolve, /office-hours, /audit-trail
+            │
+   ┌────────┴──────────────────┐
+   │  GitHub (source of truth  │
+   │  for code; brain stores   │
+   │  intent and reasoning)    │
+   └───────────────────────────┘
+```
+
+For schema and design rationale, see [`ARCHITECTURE.md`](ARCHITECTURE.md). For what fstack inherited from gstack and what's original, see [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md). For the cherry-pick log of upstream syncs, see [`UPSTREAM_SYNCS.md`](UPSTREAM_SYNCS.md).
 
 ## Repo layout
 
@@ -91,60 +108,60 @@ For schema and design rationale, see `ARCHITECTURE.md`. For the gstack heritage,
 fstack/
 ├── brain/
 │   ├── schema.sql               # Apply to Supabase once
-│   ├── cli/                     # `fstack-brain` Bun binary (called by hooks)
+│   ├── migrations/              # Additive migrations (apply in order)
+│   ├── cli/                     # `fstack-brain` Bun binary (used by hooks)
 │   └── README.md
 ├── hooks/
 │   ├── install.ts               # Wires Claude Code hooks
 │   └── README.md
 ├── bin/
+│   ├── fstack-init              # Per-repo bootstrap (writes CLAUDE.md section)
 │   ├── fstack-brain-setup       # Brain bootstrap (called by ./setup)
-│   ├── fstack-config            # gstack-inherited config CLI
-│   ├── fstack-settings-hook     # gstack-inherited Claude settings editor
-│   └── ...                      # other gstack-inherited helpers
-├── browse/                      # gstack-inherited Chromium daemon
-├── extension/                   # gstack-inherited browser extension
+│   ├── fstack-config            # Inherited config CLI
+│   ├── fstack-settings-hook     # Inherited Claude-settings editor
+│   └── ...                      # other inherited helpers
+├── browse/                      # Inherited Chromium daemon
+├── extension/                   # Inherited browser extension
 ├── <skill>/                     # one dir per skill, each contains SKILL.md
-├── setup                        # main install entry point
-├── ARCHITECTURE.md              # design + schema rationale
-├── BROWSER.md                   # gstack-inherited browser daemon reference
-├── SETUP.md                     # onboarding for new users
-├── UPSTREAM_SYNCS.md            # cherry-pick log from gstack
-├── ACKNOWLEDGEMENTS.md          # credits + attribution
+├── setup                        # Main install entry point
+├── README.md
+├── SETUP.md                     # Step-by-step onboarding
+├── ARCHITECTURE.md              # Design + schema rationale
+├── BROWSER.md                   # Inherited browser daemon reference
+├── ACKNOWLEDGEMENTS.md          # Credits + attribution
+├── UPSTREAM_SYNCS.md            # Cherry-pick log from gstack
+├── CLAUDE.md                    # Project instructions for Claude Code
 ├── LICENSE                      # MIT (preserves both copyrights)
-├── CLAUDE.md                    # project instructions for Claude Code
-├── VERSION
-└── README.md
+└── VERSION
 ```
 
 ## Upstream sync rhythm
 
-Quarterly visit `garrytan/gstack`:
+Visit `garrytan/gstack` quarterly or whenever a useful change is announced:
 
 ```bash
 git fetch upstream-gstack
 git log upstream-gstack/main --since="3 months ago" --oneline
 ```
 
-Cherry-pick (never merge) commits worth pulling — security patches in `browse/`, performance fixes in the Chromium daemon, useful improvements to skills we kept. Log in `UPSTREAM_SYNCS.md`.
+Cherry-pick (never merge) commits worth pulling: security patches in `browse/`, performance fixes in the Chromium daemon, improvements to inherited skills. Log every sync in `UPSTREAM_SYNCS.md`.
 
 ## Principles
 
-1. **Hard fork, not vendored dep** — fstack is ours; we own every line.
-2. **Cherry-pick only on upstream sync** — surgical, never bulk-merge.
-3. **Two writers, one brain** — multi-agent state in shared Supabase, no per-user partitioning.
-4. **No outbound data except to our brain and LLM APIs** — telemetry to third parties is dead.
-5. **Auto-magic by default, manual when meaningful** — hooks do heavy lifting; explicit slash commands for things that matter.
-6. **Brownfield-shaped** — every skill must work on existing code.
-7. **Awareness, not prevention** — both agents work freely; brain logs intent so conflicts get smart resolution at merge time.
-8. **gstack is a starting point, not a destination** — after fork-day, fstack diverges.
-9. **Schema graph-shaped from day one** — junction tables for features, FKs for relationships, no flat JSON dumping.
+1. **Hard fork, not vendored dep.** fstack owns every line. No live-updating from upstream.
+2. **Cherry-pick only.** Surgical syncs, never bulk merges.
+3. **Brain is shared, scoped per-repo.** All agents read and write to the same Supabase. Each repo gets its own row in the `repos` table; intents, decisions, edits, handoffs are scoped to it.
+4. **No outbound data.** Telemetry to upstream is removed. The only network calls are to your brain and to LLM APIs you already use.
+5. **Auto-magic by default, explicit when meaningful.** Hooks do heavy lifting; slash commands are for moments that need user judgment.
+6. **Brownfield-shaped.** Every skill must work on existing codebases, not just greenfield.
+7. **Awareness, not prevention.** Agents work freely. The brain logs intent so conflicts get smart resolution at merge time.
+8. **gstack is a starting point, not a destination.** Fork-day was the last time fstack and gstack agreed on a tree.
+9. **Schema graph-shaped from day one.** Junction tables for features, foreign keys for relationships, no flat JSON dumping.
 
 ## Attribution
 
-fstack is a hard fork of [garrytan/gstack](https://github.com/garrytan/gstack), MIT-licensed, with substantial modifications. The original gstack copyright is preserved in [`LICENSE`](LICENSE).
-
-For the full list of what fstack inherits from gstack, what it adds, what it removes, and credit to dependencies, see [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md).
+fstack is a hard fork of [garrytan/gstack](https://github.com/garrytan/gstack), MIT-licensed, with substantial modifications. The original gstack copyright is preserved in [`LICENSE`](LICENSE). The full picture of what's inherited, what's original, and what's removed lives in [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md).
 
 ## License
 
-MIT — both Garry Tan (gstack) and the fstack team. See [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](LICENSE) — both the original gstack copyright and the fstack contributors' copyright are preserved.

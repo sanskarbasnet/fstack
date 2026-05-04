@@ -43,8 +43,8 @@
 
 | Table | What | Why first-class |
 |---|---|---|
-| `agents` | `sanskar`, `owen` | Attribution everywhere; permissioning hook for future |
-| `repos` | One row per repo (canonical `github.com/foreman/x` form) | Multi-repo support from day 1 |
+| `agents` | one row per teammate (e.g. `alice`, `bob`) | Attribution everywhere; permissioning hook for future |
+| `repos` | One row per repo (canonical `github.com/org/name` form) | Multi-repo support from day 1 |
 | `features` | Domain tags per repo (auth, billing, matching) | Cross-cutting query axis |
 | `files` | Every file we've ever touched | Attach features + ownership; referenced by `edits` |
 | `branches` | Branch state per repo | Foreign-key target for intents |
@@ -158,10 +158,10 @@ Skills assume `fstack-brain` is on PATH. The setup script symlinks `brain/cli/di
 ### Per-machine: `~/.fstack/config.yaml`
 
 ```yaml
-agent_id: sanskar              # or 'owen'
+agent_id: alice                # your handle
 brain_url: https://xxx.supabase.co
 brain_anon_key: eyJ...
-machine: sanskar-mbp
+machine: alice-mbp
 auto_upgrade: false            # hardcoded false (we manage versions)
 telemetry: off                 # hardcoded off (no outbound)
 ```
@@ -217,7 +217,7 @@ Reconsider when we have 1000+ decisions or notice ILIKE missing relevant results
 ### Why no per-user RLS
 
 Considered: Supabase auth with `auth.uid()`-keyed RLS policies.
-Rejected for v1: two trusted users sharing one anon key. RLS adds operational overhead (creating Supabase auth users, managing JWTs) for zero security benefit between you and Owen.
+Rejected for v1: a small trusted team sharing one anon key. RLS adds operational overhead (Supabase auth users, JWT management) for zero security benefit when everyone with the key is already a trusted teammate.
 
 Reconsider when we add a third person or take on client work.
 

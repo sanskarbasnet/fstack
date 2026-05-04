@@ -25,16 +25,16 @@ Handled by `./setup` at fstack root. Writes:
 
 ```yaml
 # ~/.fstack/config.yaml
-agent_id: sanskar              # or 'owen'
+agent_id: alice                # your handle
 brain_url: https://xxx.supabase.co
 brain_anon_key: eyJ...
-machine: sanskar-mbp
+machine: alice-mbp
 ```
 
 ## Schema overview
 
 First-class entities:
-- `agents` — sanskar, owen
+- `agents` — one row per teammate
 - `repos` — every repo we work in
 - `features` — domain tags (auth, billing, matching) per repo
 - `branches` — track branch state per repo

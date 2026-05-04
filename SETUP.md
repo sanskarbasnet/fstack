@@ -14,12 +14,11 @@ This guide is for **someone joining a team** that already runs fstack. The team 
 - **`git`** installed.
 - **`node`** installed (only used to verify Bun didn't bring its own).
 - **Claude Code** installed and working.
-- **Three credentials from the team owner:**
-  1. Clone URL (e.g. `git@github.com:foreman/fstack.git`)
+- **Three things from your team's fstack owner (DM only — never in chat or commits):**
+  1. The clone URL of your team's fstack repo (often the public `https://github.com/sanskarbasnet/fstack` if your team uses fstack as-is, or your team's fork)
   2. Brain URL (e.g. `https://xxxxxxxx.supabase.co`)
   3. Brain anon key (a long JWT starting with `eyJ...`)
-
-DM the team owner for credentials 2 and 3 — these should never be shared in a group chat or doc.
+  4. Your `agent_id` — your handle in the team's `agents` table
 
 ---
 
@@ -77,11 +76,10 @@ If `~/.claude/` doesn't exist yet, that's fine — git will create it.
 6. **Prompt for three values:**
 
 ```
-agent_id        ← type your handle: 'owen', 'sanskar', etc.
-                  Must match a row in the brain's `agents` table —
-                  ask the team owner if you're unsure what it should be.
-brain_url       ← paste the Supabase URL from the team owner
-brain_anon_key  ← paste the long JWT from the team owner
+agent_id        ← your handle. Must match a row in the brain's `agents`
+                  table. Ask your team owner if you're unsure what to use.
+brain_url       ← the Supabase URL from your team owner
+brain_anon_key  ← the long JWT from your team owner
 ```
 
 7. Write `~/.fstack/config.yaml` (mode 0600, only readable by you).
@@ -135,7 +133,7 @@ What it does (idempotent — re-running is safe):
 3. Creates `docs/decisions/` with a README (where `/decide` writes ADR files)
 4. Prints the suggested `git add`/`git commit` command — it does **not** auto-commit
 
-Owen and any other teammate cloning the repo after the commit will get the fstack section automatically — no per-machine action needed besides the global `./setup` they already ran.
+Once committed and pushed, anyone cloning the repo afterwards gets the fstack section automatically. They only need the global `./setup` step on their machine.
 
 ## Step 6 — You're done. How to actually use fstack
 

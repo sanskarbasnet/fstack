@@ -480,11 +480,16 @@ alter default privileges in schema fstack
 -- with proper RLS policies keyed off auth.uid().
 
 -- =============================================================================
--- SEED
+-- SEED — register your team's agents
 -- =============================================================================
--- Insert agents idempotently. Adjust display names/emails as needed.
-
-insert into fstack.agents (id, display_name, email) values
-  ('sanskar', 'Sanskar Basnet', 'sanskarbasnetitahari@gmail.com'),
-  ('owen',    'Owen',           null)
-on conflict (id) do nothing;
+-- Every teammate using fstack needs a row here. The `id` is the handle they
+-- type during ./setup. After applying this schema, edit the values below to
+-- match your team and run just this block (the rest of the file is idempotent
+-- but the seed is the only project-specific bit).
+--
+-- Example (uncomment + edit):
+--
+-- insert into fstack.agents (id, display_name, email) values
+--   ('alice', 'Alice Smith', 'alice@example.com'),
+--   ('bob',   'Bob Jones',   'bob@example.com')
+-- on conflict (id) do nothing;
