@@ -12,6 +12,27 @@ import {
   setCachedIntent,
 } from "../queue.ts";
 import { emit, emitError } from "../output.ts";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/**
+ * Find a wishlist row by id-prefix in this repo. Client-side filter because
+ * Postgres uuid columns don't support ILIKE/LIKE pattern matching.
+ */
+async function findWishlistByIdPrefix(
+  db: SupabaseClient,
+  repoId: string,
+  idPrefix: string,
+  status: string = "open"
+): Promise<any | null> {
+  const { data, error } = await db
+    .from("wishlist")
+    .select("*")
+    .eq("repo_id", repoId)
+    .eq("status", status);
+  if (error) throw error;
+  if (!data) return null;
+  return data.find((r: any) => r.id.startsWith(idPrefix)) ?? null;
+}
 
 /**
  * wishlist add — local-first capture of a future idea.
@@ -29,30 +50,15 @@ export async function wishlistAdd(args: {
 }) {
   if (!args.title) emitError("wishlist add: --title required", 2);
 
-  const ctx = buildCtx();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const tags = args.tags
     ? args.tags.split(",").map((t) => t.trim()).filter(Boolean)
     : [];
 
-  enqueue({
-    op: "intent_write" as any, // reuse the queue plumbing — wishlist add op below
-    payload: {
-      __wishlist__: true,
-      id,
-      agent_id: ctx.cfg.agent_id,
-      repo_canonical: ctx.repoCanonical,
-      title: args.title,
-      body: args.body ?? null,
-      tags,
-      created_at: now,
-    },
-  });
-
   // Direct insert path — wishlist isn't latency-critical (rare write) and we
   // want it to land in the brain quickly so /ideas list shows it.
-  // Fall back to queueing if Supabase is slow.
+  // Only queue if Supabase fails (true offline-first fallback).
   try {
     const fullCtx = await buildCtxFull();
     const { error } = await fullCtx.db.from("wishlist").insert({
@@ -73,6 +79,20 @@ export async function wishlistAdd(args: {
       tags,
     });
   } catch (err: any) {
+    // Brain unreachable — queue for later flush
+    const ctx = buildCtx();
+    enqueue({
+      op: "wishlist_add" as any,
+      payload: {
+        id,
+        agent_id: ctx.cfg.agent_id,
+        repo_canonical: ctx.repoCanonical,
+        title: args.title,
+        body: args.body ?? null,
+        tags,
+        created_at: now,
+      },
+    });
     emit(`💡 idea captured (queued — brain unreachable): '${args.title}'`, {
       ok: true,
       queued: true,
@@ -122,15 +142,8 @@ export async function wishlistPromote(args: { id?: string }) {
 
   const ctx = await buildCtxFull();
 
-  // 1. Find the wishlist row
-  const { data: row, error: fetchErr } = await ctx.db
-    .from("wishlist")
-    .select("*")
-    .eq("repo_id", ctx.repoId)
-    .ilike("id", `${args.id}%`) // accept short prefix
-    .eq("status", "open")
-    .maybeSingle();
-  if (fetchErr) throw fetchErr;
+  // 1. Find the wishlist row by id-prefix (uuid columns don't support LIKE)
+  const row = await findWishlistByIdPrefix(ctx.db, ctx.repoId, args.id!, "open");
   if (!row) {
     emit(`(no open idea with id starting '${args.id}')`, {
       ok: false,
@@ -172,13 +185,7 @@ export async function wishlistPromote(args: { id?: string }) {
 export async function wishlistReject(args: { id?: string; reason?: string }) {
   if (!args.id) emitError("wishlist reject: --id required", 2);
   const ctx = await buildCtxFull();
-  const { data: row } = await ctx.db
-    .from("wishlist")
-    .select("id, title")
-    .eq("repo_id", ctx.repoId)
-    .ilike("id", `${args.id}%`)
-    .eq("status", "open")
-    .maybeSingle();
+  const row = await findWishlistByIdPrefix(ctx.db, ctx.repoId, args.id!, "open");
   if (!row) {
     emit(`(no open idea with id starting '${args.id}')`, { ok: false });
     return;
@@ -200,13 +207,7 @@ export async function wishlistReject(args: { id?: string; reason?: string }) {
 export async function wishlistSnooze(args: { id?: string }) {
   if (!args.id) emitError("wishlist snooze: --id required", 2);
   const ctx = await buildCtxFull();
-  const { data: row } = await ctx.db
-    .from("wishlist")
-    .select("id, title")
-    .eq("repo_id", ctx.repoId)
-    .ilike("id", `${args.id}%`)
-    .eq("status", "open")
-    .maybeSingle();
+  const row = await findWishlistByIdPrefix(ctx.db, ctx.repoId, args.id!, "open");
   if (!row) {
     emit(`(no open idea with id starting '${args.id}')`, { ok: false });
     return;

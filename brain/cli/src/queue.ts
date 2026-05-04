@@ -48,7 +48,8 @@ export type QueueOp =
   | { op: "decide_write"; payload: any }
   | { op: "handoff_write"; payload: any }
   | { op: "edit_log"; payload: any }
-  | { op: "heartbeat"; payload: any };
+  | { op: "heartbeat"; payload: any }
+  | { op: "wishlist_add"; payload: any };
 
 export type QueueEntry = QueueOp & {
   id: string;
@@ -333,6 +334,22 @@ async function applyOp(
         },
         { onConflict: "agent_id,repo_id" }
       );
+      if (error) throw error;
+      return;
+    }
+    case "wishlist_add": {
+      const p = entry.payload;
+      const repoId = await resolveRepo(p.repo_canonical);
+      const { error } = await db.from("wishlist").insert({
+        id: p.id,
+        agent_id: p.agent_id,
+        repo_id: repoId,
+        title: p.title,
+        body: p.body ?? null,
+        tags: p.tags ?? [],
+        created_at: p.created_at,
+        updated_at: p.created_at,
+      });
       if (error) throw error;
       return;
     }
