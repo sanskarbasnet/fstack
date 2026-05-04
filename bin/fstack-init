@@ -106,7 +106,7 @@ Hooks auto-fire — you do **not** need to invoke them:
 - Never share the brain anon key in chat, docs, or commits — DM only.
 - ADR files (written by \`/decide\`) land in \`docs/decisions/\` and **are committed** with code changes.
 - Wishlist ideas (written by \`/idea\`) land in the **shared brain only** — not in this repo.
-- Don't manually edit anything inside the \`<!-- fstack-init:start -->\` / \`<!-- fstack-init:end -->\` markers — re-run \`fstack-init\` to update.
+- Don't manually edit content between the HTML comment markers above/below this section — re-run \`fstack-init\` to refresh.
 
 ### Brain scope
 
@@ -128,7 +128,10 @@ if [ -f "$CLAUDE_MD" ]; then
   #   c) Has no fstack content at all → append new
 
   if grep -qF "$START_MARKER" "$CLAUDE_MD" && grep -qF "$END_MARKER" "$CLAUDE_MD"; then
-    # Case (a): replace fenced block in place
+    # Case (a): replace fenced block in place. Use rfind() for end marker
+    # so that body-text mentions of the marker string don't get mistaken
+    # for the actual closing fence — the real closing marker is always the
+    # LAST occurrence.
     printf "%s" "$FSTACK_SECTION" | FSTACK_CLAUDE_MD="$CLAUDE_MD" FSTACK_START="$START_MARKER" FSTACK_END="$END_MARKER" python3 -c '
 import os, sys
 path  = os.environ["FSTACK_CLAUDE_MD"]
@@ -137,7 +140,7 @@ end   = os.environ["FSTACK_END"]
 new_block = sys.stdin.read().rstrip()
 with open(path) as f: src = f.read()
 s = src.find(start)
-e = src.find(end)
+e = src.rfind(end)
 if s == -1 or e == -1 or e <= s:
     sys.exit(0)
 head = src[:s].rstrip()
