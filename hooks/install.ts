@@ -166,14 +166,17 @@ function upsertEntry(
 
 function ensureEnv(settings: Settings): void {
   // Add ~/.local/bin and ~/.bun/bin to PATH for the Bash tool's subshell
-  // (skills shell out to fstack-brain too).
+  // (skills shell out to fstack-brain too). settings.env values are NOT
+  // shell-expanded by Claude Code — they're treated as literal strings — so
+  // we have to embed the standard system PATH explicitly here, not ${PATH}.
   const localBin = `${homedir()}/.local/bin`;
   const bunBin = `${homedir()}/.bun/bin`;
+  const systemPath =
+    "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+  const newPath = `${localBin}:${bunBin}:${systemPath}`;
   if (!settings.env) settings.env = {};
-  const current = settings.env.PATH ?? "${PATH}";
-  if (!current.includes(localBin) || !current.includes(bunBin)) {
-    settings.env.PATH = `${localBin}:${bunBin}:${current.includes("$") ? current : "${PATH}"}`;
-  }
+  // Always overwrite — a previous installer run may have written a literal ${PATH}.
+  if (settings.env.PATH !== newPath) settings.env.PATH = newPath;
 }
 
 function install(): { added: number; replaced: number; unchanged: number } {

@@ -83,7 +83,20 @@ export async function intentInfer(args: { prompt?: string }) {
     });
     return;
   }
-  const ctx = await buildCtx();
+  let ctx;
+  try {
+    ctx = await buildCtx();
+  } catch (err: any) {
+    const msg = String(err?.message ?? err);
+    if (msg.includes("not inside a git repo")) {
+      emit("intent infer: skipped (not in a git repo)", {
+        ok: true,
+        skipped: "no-repo",
+      });
+      return;
+    }
+    throw err;
+  }
   const existing = await activeIntentForBranch(ctx.db, ctx.cfg.agent_id, ctx.branchId);
   if (existing) {
     emit(`intent infer: existing active intent — '${existing.title}'`, {

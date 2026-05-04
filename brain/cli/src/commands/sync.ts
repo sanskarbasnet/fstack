@@ -9,10 +9,26 @@ import { emit } from "../output.ts";
 /**
  * sync — pull latest brain state, format the SessionStart digest.
  *
- * Always succeeds (best-effort). Network failures degrade silently.
+ * Always succeeds (best-effort). Network failures degrade silently. If the
+ * caller isn't in a git repo at all, we skip silently — SessionStart often
+ * fires before the user has cd'd into one.
  */
 export async function syncCmd() {
-  const ctx = await buildCtx();
+  let ctx;
+  try {
+    ctx = await buildCtx();
+  } catch (err: any) {
+    const msg = String(err?.message ?? err);
+    // Not in a git repo — silent skip; this is a normal SessionStart case.
+    if (msg.includes("not inside a git repo")) {
+      emit("(sync skipped — not in a git repo)", {
+        ok: true,
+        skipped: "no-repo",
+      });
+      return;
+    }
+    throw err;
+  }
 
   // Stale-presence sweep so we don't show ghosts.
   await ctx.db.rpc("expire_stale_presence", {

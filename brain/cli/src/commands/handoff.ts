@@ -48,6 +48,7 @@ export async function handoffAuto() {
     ctx = await buildCtx();
   } catch {
     // Not in a repo or no config — silent.
+    emit("(auto-handoff skipped — no repo/config)", { ok: true, skipped: true });
     return;
   }
   const intent = await activeIntentForBranch(ctx.db, ctx.cfg.agent_id, ctx.branchId);

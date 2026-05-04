@@ -24,7 +24,20 @@ export async function logEditCmd(args: {
     return;
   }
 
-  const ctx = await buildCtx();
+  let ctx;
+  try {
+    ctx = await buildCtx();
+  } catch (err: any) {
+    // Edit/Write outside a git repo — skip silently.
+    if (String(err?.message ?? "").includes("not inside a git repo")) {
+      emit("log-edit: skipped (not in a git repo)", {
+        ok: true,
+        skipped: "no-repo",
+      });
+      return;
+    }
+    throw err;
+  }
   const intent = await activeIntentForBranch(ctx.db, ctx.cfg.agent_id, ctx.branchId);
   if (!intent) {
     // No active intent yet (e.g. session just opened). Skip silently — we'll
