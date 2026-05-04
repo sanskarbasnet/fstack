@@ -1,4 +1,4 @@
-import { buildCtxFull } from "../context.ts";
+import { buildCtxFull, type Ctx } from "../context.ts";
 import {
   ensureRepo,
   ensureBranch,
@@ -8,46 +8,26 @@ import { defaultBranch } from "../git.ts";
 import { drainQueue } from "../queue.ts";
 import { emit } from "../output.ts";
 
+export type CoordinateResult = {
+  has_overlap: boolean;
+  active_overlaps: any[];
+  shipped_recent: any[];
+  related_decisions: any[];
+  keywords: string[];
+  /** True when there's anything worth surfacing to the user. */
+  has_signal: boolean;
+};
+
 /**
- * coordinate --topic "<text>" — brain-wide collision check.
- *
- * Returns:
- *   - active overlapping intents from OTHER agents (intent_status='active')
- *   - intents shipped in the last 7d that match the topic (file overlap)
- *   - related decisions whose body/title match the topic keywords
- *
- * Used by /coordinate skill (manual) AND by UserPromptSubmit hook (auto).
- *
- * Empty report = green light. Non-empty = surface to user with pivots.
+ * Pure function: run the coordinate query against an existing context.
+ * Returns structured data; never emits. Callable from intent_infer hook
+ * to fold collision checks into intent drafting.
  */
-export async function coordinate(args: { topic?: string }) {
-  if (!args.topic) {
-    emit("coordinate: --topic required", { ok: false });
-    process.exit(2);
-  }
-  let ctx;
-  try {
-    ctx = await buildCtxFull();
-  } catch (err: any) {
-    if (String(err?.message ?? "").includes("not inside a git repo")) {
-      emit("coordinate: skipped (not in a git repo)", {
-        ok: true,
-        skipped: "no-repo",
-      });
-      return;
-    }
-    throw err;
-  }
-
-  await drainQueue(
-    ctx.db,
-    async (c) => ensureRepo(ctx.db, c, defaultBranch()),
-    async (r, b) => ensureBranch(ctx.db, r, b),
-    async (r, p) => ensureFile(ctx.db, r, p)
-  );
-
-  // Extract keywords from the topic for ILIKE matching
-  const keywords = extractKeywords(args.topic);
+export async function runCoordinate(
+  ctx: Ctx,
+  topic: string
+): Promise<CoordinateResult> {
+  const keywords = extractKeywords(topic);
   const orClauses = keywords.length
     ? keywords.map((k) => `title.ilike.%${k}%,body.ilike.%${k}%`).join(",")
     : "";
@@ -93,42 +73,106 @@ export async function coordinate(args: { topic?: string }) {
     related_decisions = data ?? [];
   }
 
-  // Render
-  const hasOverlap = active_overlaps.length > 0;
+  const has_overlap = active_overlaps.length > 0;
+  return {
+    has_overlap,
+    active_overlaps,
+    shipped_recent,
+    related_decisions,
+    keywords,
+    has_signal:
+      has_overlap || shipped_recent.length > 0 || related_decisions.length > 0,
+  };
+}
+
+/**
+ * Format a CoordinateResult as a short multi-line warning suitable for
+ * embedding in an intent body or printing to the user.
+ */
+export function formatCoordinateWarning(r: CoordinateResult): string {
   const lines: string[] = [];
-  if (hasOverlap) {
-    lines.push(`⚠ Coordinate: ${active_overlaps.length} active overlap(s)`);
-    for (const i of active_overlaps) {
+  if (r.active_overlaps.length > 0) {
+    lines.push(`⚠ ${r.active_overlaps.length} active overlap(s):`);
+    for (const i of r.active_overlaps.slice(0, 5)) {
+      lines.push(`  • ${i.agent_id}: "${i.title}"`);
+    }
+  }
+  if (r.shipped_recent.length > 0) {
+    lines.push(`Recently shipped (last 7d):`);
+    for (const i of r.shipped_recent.slice(0, 3)) {
+      lines.push(`  • ${i.agent_id}: ${i.title}`);
+    }
+  }
+  if (r.related_decisions.length > 0) {
+    lines.push(`Related decisions:`);
+    for (const d of r.related_decisions.slice(0, 3)) {
+      const num = String(d.number).padStart(4, "0");
+      lines.push(`  • ${num} ${d.title}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+/**
+ * coordinate --topic "<text>" — CLI handler. Wraps runCoordinate + emit.
+ */
+export async function coordinate(args: { topic?: string }) {
+  if (!args.topic) {
+    emit("coordinate: --topic required", { ok: false });
+    process.exit(2);
+  }
+  let ctx;
+  try {
+    ctx = await buildCtxFull();
+  } catch (err: any) {
+    if (String(err?.message ?? "").includes("not inside a git repo")) {
+      emit("coordinate: skipped (not in a git repo)", {
+        ok: true,
+        skipped: "no-repo",
+      });
+      return;
+    }
+    throw err;
+  }
+
+  await drainQueue(
+    ctx.db,
+    async (c) => ensureRepo(ctx.db, c, defaultBranch()),
+    async (r, b) => ensureBranch(ctx.db, r, b),
+    async (r, p) => ensureFile(ctx.db, r, p)
+  );
+
+  const r = await runCoordinate(ctx, args.topic);
+
+  const lines: string[] = [];
+  if (r.has_overlap) {
+    lines.push(`⚠ Coordinate: ${r.active_overlaps.length} active overlap(s)`);
+    for (const i of r.active_overlaps) {
       lines.push(`  • ${i.agent_id}: "${i.title}"`);
     }
   } else {
     lines.push("✓ Coordinate: no active overlaps — clear to proceed.");
   }
-  if (shipped_recent.length > 0) {
+  if (r.shipped_recent.length > 0) {
     lines.push("");
-    lines.push(`Recently shipped in this area (last 7d, ${shipped_recent.length}):`);
-    for (const i of shipped_recent.slice(0, 5)) {
+    lines.push(
+      `Recently shipped in this area (last 7d, ${r.shipped_recent.length}):`
+    );
+    for (const i of r.shipped_recent.slice(0, 5)) {
       const pr = i.pr_url ? ` (${i.pr_url})` : "";
       lines.push(`  • ${i.agent_id}: ${i.title}${pr}`);
     }
   }
-  if (related_decisions.length > 0) {
+  if (r.related_decisions.length > 0) {
     lines.push("");
-    lines.push(`Related decisions (${related_decisions.length}):`);
-    for (const d of related_decisions.slice(0, 5)) {
+    lines.push(`Related decisions (${r.related_decisions.length}):`);
+    for (const d of r.related_decisions.slice(0, 5)) {
       const num = String(d.number).padStart(4, "0");
       lines.push(`  • ${num} ${d.title} (by ${d.authored_by})`);
     }
   }
 
-  emit(lines.join("\n"), {
-    ok: true,
-    has_overlap: hasOverlap,
-    active_overlaps,
-    shipped_recent,
-    related_decisions,
-    keywords,
-  });
+  emit(lines.join("\n"), { ok: true, ...r });
 }
 
 const STOPWORDS = new Set([

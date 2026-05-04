@@ -8,6 +8,7 @@ import {
   getCachedIntent,
   setCachedIntent,
 } from "../queue.ts";
+import { runCoordinate, formatCoordinateWarning } from "./coordinate.ts";
 
 /**
  * intent get — local-first.
@@ -158,13 +159,33 @@ export async function intentInfer(args: { prompt?: string }) {
   const title = firstLine.slice(0, 120);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+
+  // Drafting a NEW intent — also run coordinate to surface any collisions.
+  // Skips quietly if not in a repo with brain context (e.g., very new repo
+  // where buildCtx returned empty repoId/branchId — runCoordinate would
+  // fail; we upgrade to full context just for this.) Best-effort.
+  let coordinateWarning = "";
+  let coordinateData: any = null;
+  try {
+    const fullCtx = await buildCtxFull();
+    const r = await runCoordinate(fullCtx, args.prompt.trim());
+    if (r.has_signal) {
+      coordinateWarning = "\n\n[fstack coordinate]\n" + formatCoordinateWarning(r);
+      coordinateData = r;
+    }
+  } catch {
+    // Best-effort — never block intent_infer on coordinate failures
+  }
+
+  const body = (args.prompt.trim().slice(0, 1500) + coordinateWarning).slice(0, 3000);
+
   const intent = {
     id,
     agent_id: ctx.cfg.agent_id,
     repo_id: ctx.repoId,
     branch_id: ctx.branchId,
     title,
-    body: args.prompt.trim().slice(0, 1500),
+    body,
     promises: null,
     not_touching: null,
     inferred: true,
@@ -181,9 +202,16 @@ export async function intentInfer(args: { prompt?: string }) {
       branch_name: ctx.branchName,
     },
   });
-  emit(`intent inferred — '${intent.title}' (stub; refine with /intent)`, {
+  // Emit. If coordinate found something, prepend the warning to the human
+  // line so the agent sees it in stdout.
+  const headline = coordinateWarning
+    ? `intent inferred — '${intent.title}' (stub; refine with /intent)\n⚠ COORDINATE WARNING — overlap detected, see intent body`
+    : `intent inferred — '${intent.title}' (stub; refine with /intent)`;
+
+  emit(headline, {
     ok: true,
     inferred: intent,
+    coordinate: coordinateData,
   });
 }
 
