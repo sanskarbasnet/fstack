@@ -14,8 +14,12 @@
 
 -- -----------------------------------------------------------------------------
 -- Extensions
+-- pgcrypto is enabled by default on Supabase (provides gen_random_uuid()).
+-- We don't use uuid-ossp because Supabase installs extensions into the
+-- `public` schema by default, and unqualified calls from the `fstack` schema
+-- don't resolve. gen_random_uuid() lives in pg_catalog and resolves from
+-- anywhere.
 -- -----------------------------------------------------------------------------
-create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";
 
 -- -----------------------------------------------------------------------------
@@ -48,7 +52,7 @@ create table if not exists fstack.agents (
 
 -- repos: every row is keyed to a repo (canonical github.com/org/name form)
 create table if not exists fstack.repos (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   canonical     text unique not null,             -- 'github.com/foreman/marketplace'
   default_branch text not null default 'main',
   created_at    timestamptz not null default now()
@@ -57,7 +61,7 @@ create table if not exists fstack.repos (
 -- features: high-level domain tags ('auth', 'billing', 'matching', ...)
 -- Created on demand; serves as the join axis for cross-cutting queries.
 create table if not exists fstack.features (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   repo_id       uuid not null references fstack.repos(id) on delete cascade,
   name          text not null,                    -- 'auth', 'billing'
   description   text,
@@ -69,7 +73,7 @@ create index if not exists features_repo_idx on fstack.features(repo_id);
 
 -- files: first-class so we can attach features and ownership history
 create table if not exists fstack.files (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   repo_id       uuid not null references fstack.repos(id) on delete cascade,
   path          text not null,                    -- 'src/auth/login.ts'
   last_seen_at  timestamptz not null default now(),
@@ -80,7 +84,7 @@ create index if not exists files_repo_path_idx on fstack.files(repo_id, path);
 
 -- branches: track current branch states
 create table if not exists fstack.branches (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   repo_id       uuid not null references fstack.repos(id) on delete cascade,
   name          text not null,                    -- 'sanskar/rate-limit'
   base          text not null default 'main',
@@ -92,7 +96,7 @@ create index if not exists branches_repo_name_idx on fstack.branches(repo_id, na
 
 -- intents: what an agent is trying to do on a branch
 create table if not exists fstack.intents (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   agent_id      text not null references fstack.agents(id) on delete restrict,
   repo_id       uuid not null references fstack.repos(id) on delete cascade,
   branch_id     uuid not null references fstack.branches(id) on delete cascade,
@@ -119,7 +123,7 @@ create trigger intents_touch before update on fstack.intents
 
 -- edits: append-only change log per intent
 create table if not exists fstack.edits (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   intent_id     uuid not null references fstack.intents(id) on delete cascade,
   agent_id      text not null references fstack.agents(id) on delete restrict,
   file_id       uuid not null references fstack.files(id) on delete cascade,
@@ -135,7 +139,7 @@ create index if not exists edits_agent_idx on fstack.edits(agent_id);
 -- decisions: ADRs (architectural decision records)
 -- Body uses gbrain's compiled-truth + timeline pattern.
 create table if not exists fstack.decisions (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   repo_id       uuid not null references fstack.repos(id) on delete cascade,
   number        integer not null,                 -- ADR number 0001, 0002 (per repo)
   title         text not null,
@@ -158,7 +162,7 @@ create trigger decisions_touch before update on fstack.decisions
 
 -- handoffs: session handoff notes (auto or rich)
 create table if not exists fstack.handoffs (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   repo_id       uuid not null references fstack.repos(id) on delete cascade,
   intent_id     uuid references fstack.intents(id) on delete cascade,
   from_agent    text not null references fstack.agents(id),
@@ -360,7 +364,9 @@ select
   i.id,
   i.agent_id,
   a.display_name as agent_name,
+  i.repo_id,
   r.canonical as repo,
+  i.branch_id,
   b.name as branch_name,
   i.title,
   i.body,
@@ -417,6 +423,26 @@ create publication fstack_realtime for table
   fstack.presence,
   fstack.intents,
   fstack.handoffs;
+
+-- =============================================================================
+-- POSTGREST GRANTS
+-- =============================================================================
+-- Supabase's REST API runs as the `anon` role (and `authenticated` for logged-in
+-- users). Without these grants, queries fail with "permission denied for schema
+-- fstack" even after exposing the schema in Project Settings → API.
+
+grant usage on schema fstack to anon, authenticated;
+grant select, insert, update, delete on all tables in schema fstack to anon, authenticated;
+grant usage, select on all sequences in schema fstack to anon, authenticated;
+grant execute on all functions in schema fstack to anon, authenticated;
+
+-- Future-proofing: tables/seq/funcs added later auto-inherit these grants
+alter default privileges in schema fstack
+  grant select, insert, update, delete on tables to anon, authenticated;
+alter default privileges in schema fstack
+  grant usage, select on sequences to anon, authenticated;
+alter default privileges in schema fstack
+  grant execute on functions to anon, authenticated;
 
 -- =============================================================================
 -- ROW-LEVEL SECURITY
