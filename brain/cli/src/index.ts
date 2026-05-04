@@ -39,6 +39,7 @@ import { whyCmd } from "./commands/why.ts";
 import { flushCmd, queueStatusCmd } from "./commands/flush.ts";
 import { handoffPickup } from "./commands/pickup.ts";
 import { coordinate } from "./commands/coordinate.ts";
+import { blameCmd } from "./commands/blame.ts";
 
 function parseArgs(rest: string[]): Record<string, string | true> {
   const out: Record<string, string | true> = {};
@@ -84,6 +85,7 @@ Commands:
   standup [--window day|week]
   why --target P
   coordinate --topic "<text>"         scan brain for collisions before coding
+  blame --file P [--line N]           git blame + brain context (intents, decisions)
   flush                               manually drain the local write queue
   queue                               show local queue depth
 `;
@@ -184,6 +186,11 @@ async function main() {
         return await queueStatusCmd();
       case "coordinate":
         return await coordinate({ topic: str(args.topic) });
+      case "blame":
+        return await blameCmd({
+          file: str(args.file),
+          line: typeof args.line === "string" ? parseInt(args.line, 10) : undefined,
+        });
       default:
         process.stdout.write(HELP);
         process.exit(2);
