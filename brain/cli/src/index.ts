@@ -40,6 +40,7 @@ import { flushCmd, queueStatusCmd } from "./commands/flush.ts";
 import { handoffPickup } from "./commands/pickup.ts";
 import { coordinate } from "./commands/coordinate.ts";
 import { blameCmd } from "./commands/blame.ts";
+import { auditTrail } from "./commands/audit-trail.ts";
 import {
   wishlistAdd,
   wishlistList,
@@ -93,6 +94,7 @@ Commands:
   why --target P
   coordinate --topic "<text>"         scan brain for collisions before coding
   blame --file P [--line N]           git blame + brain context (intents, decisions)
+  audit-trail --target T              full chronological lineage for a file or feature
   wishlist add --title T [--body B] [--tags csv]   capture a future idea
   wishlist list [--status S]          list ideas (default status=open)
   wishlist promote --id <prefix>      promote idea → intent on current branch
@@ -203,6 +205,8 @@ async function main() {
           file: str(args.file),
           line: typeof args.line === "string" ? parseInt(args.line, 10) : undefined,
         });
+      case "audit-trail":
+        return await auditTrail({ target: str(args.target) });
       case "wishlist": {
         const sub = rest[0];
         const subArgs = parseArgs(rest.slice(1));
