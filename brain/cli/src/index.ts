@@ -37,6 +37,7 @@ import { decideWrite, decideSearch } from "./commands/decide.ts";
 import { standupCmd } from "./commands/standup.ts";
 import { whyCmd } from "./commands/why.ts";
 import { flushCmd, queueStatusCmd } from "./commands/flush.ts";
+import { handoffPickup } from "./commands/pickup.ts";
 
 function parseArgs(rest: string[]): Record<string, string | true> {
   const out: Record<string, string | true> = {};
@@ -74,6 +75,7 @@ Commands:
   handoff write --note N [--blocker B] [--next-step S] [--to-agent A]
   handoff auto                        used by SessionEnd hook
   handoff list
+  handoff pickup [--id <uuid>]        claim + hydrate context (used by /pickup)
   conflict-precheck                   used by PreToolUse on git push
   presence                            show other agents' live state
   decide write --title T --body B
@@ -143,6 +145,8 @@ async function main() {
           });
         if (sub === "auto") return await handoffAuto();
         if (sub === "list") return await handoffsList();
+        if (sub === "pickup")
+          return await handoffPickup({ id: str(subArgs.id) });
         process.stderr.write(`unknown handoff subcommand: ${sub}\n`);
         process.exit(2);
       }
