@@ -40,6 +40,13 @@ import { flushCmd, queueStatusCmd } from "./commands/flush.ts";
 import { handoffPickup } from "./commands/pickup.ts";
 import { coordinate } from "./commands/coordinate.ts";
 import { blameCmd } from "./commands/blame.ts";
+import {
+  wishlistAdd,
+  wishlistList,
+  wishlistPromote,
+  wishlistReject,
+  wishlistSnooze,
+} from "./commands/wishlist.ts";
 
 function parseArgs(rest: string[]): Record<string, string | true> {
   const out: Record<string, string | true> = {};
@@ -86,6 +93,11 @@ Commands:
   why --target P
   coordinate --topic "<text>"         scan brain for collisions before coding
   blame --file P [--line N]           git blame + brain context (intents, decisions)
+  wishlist add --title T [--body B] [--tags csv]   capture a future idea
+  wishlist list [--status S]          list ideas (default status=open)
+  wishlist promote --id <prefix>      promote idea → intent on current branch
+  wishlist reject --id <prefix> [--reason R]
+  wishlist snooze --id <prefix>
   flush                               manually drain the local write queue
   queue                               show local queue depth
 `;
@@ -191,6 +203,35 @@ async function main() {
           file: str(args.file),
           line: typeof args.line === "string" ? parseInt(args.line, 10) : undefined,
         });
+      case "wishlist": {
+        const sub = rest[0];
+        const subArgs = parseArgs(rest.slice(1));
+        if (sub === "add")
+          return await wishlistAdd({
+            title: str(subArgs.title),
+            body: str(subArgs.body),
+            tags: str(subArgs.tags),
+          });
+        if (sub === "list")
+          return await wishlistList({
+            status: str(subArgs.status),
+            limit:
+              typeof subArgs.limit === "string"
+                ? parseInt(subArgs.limit, 10)
+                : undefined,
+          });
+        if (sub === "promote")
+          return await wishlistPromote({ id: str(subArgs.id) });
+        if (sub === "reject")
+          return await wishlistReject({
+            id: str(subArgs.id),
+            reason: str(subArgs.reason),
+          });
+        if (sub === "snooze")
+          return await wishlistSnooze({ id: str(subArgs.id) });
+        process.stderr.write(`unknown wishlist subcommand: ${sub}\n`);
+        process.exit(2);
+      }
       default:
         process.stdout.write(HELP);
         process.exit(2);
