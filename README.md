@@ -106,8 +106,13 @@ fstack/
 ├── <skill>/                     # one dir per skill, each contains SKILL.md
 ├── setup                        # main install entry point
 ├── ARCHITECTURE.md              # design + schema rationale
+├── BROWSER.md                   # gstack-inherited browser daemon reference
+├── SETUP.md                     # onboarding for new users
 ├── UPSTREAM_SYNCS.md            # cherry-pick log from gstack
-├── LICENSE                      # MIT (preserved from gstack)
+├── ACKNOWLEDGEMENTS.md          # credits + attribution
+├── LICENSE                      # MIT (preserves both copyrights)
+├── CLAUDE.md                    # project instructions for Claude Code
+├── VERSION
 └── README.md
 ```
 
@@ -136,8 +141,10 @@ Cherry-pick (never merge) commits worth pulling — security patches in `browse/
 
 ## Attribution
 
-fstack is a hard fork of [garrytan/gstack](https://github.com/garrytan/gstack), MIT-licensed, with substantial modifications. Original gstack copyright preserved in `LICENSE`.
+fstack is a hard fork of [garrytan/gstack](https://github.com/garrytan/gstack), MIT-licensed, with substantial modifications. The original gstack copyright is preserved in [`LICENSE`](LICENSE).
+
+For the full list of what fstack inherits from gstack, what it adds, what it removes, and credit to dependencies, see [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md).
 
 ## License
 
-MIT.
+MIT — both Garry Tan (gstack) and the fstack team. See [`LICENSE`](LICENSE).
