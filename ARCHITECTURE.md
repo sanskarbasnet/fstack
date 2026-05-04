@@ -10,7 +10,7 @@
 │ ───────────────────────────────────────────────────────────────  │
 │ 10 fstack-original   + 7 brain-aware (modified gstack)          │
 │ + 10+ untouched gstack production skills                        │
-│ + browser stack (/browse, /qa, /open-fstack-browser, …)         │
+│ + browser stack (/browse, /qa, /qa-only, /scrape, …)            │
 │ Skills shell out to `fstack-brain` via Bash for DB ops.         │
 └─────────────────────────────────────────────────────────────────┘
                              ▲
@@ -129,7 +129,7 @@ All hooks are best-effort — `fstack-brain` exits 0 on missing config / unreach
 
 ### Browser daemon (inherited from gstack)
 
-Untouched. Persistent headless Chromium + Playwright, ~100-200ms latency, accessibility-tree refs (`@e1`, `@e2`), 6-layer prompt-injection defense, dual-listener security model, macOS Keychain cookie import. Used by `/qa`, `/qa-only`, `/browse`, `/open-fstack-browser`, `/scrape`.
+Untouched. Persistent headless Chromium + Playwright, ~100-200ms latency, accessibility-tree refs (`@e1`, `@e2`), 6-layer prompt-injection defense, dual-listener security model, macOS Keychain cookie import. Used by `/qa`, `/qa-only`, `/browse`, `/scrape`.
 
 See `BROWSER.md` and `browse/` for full details.
 
@@ -189,7 +189,7 @@ Optional. If a repo wants different hook behavior (eg. disable certain hooks for
 └── settings.json                  # Claude Code hooks
 ```
 
-The brain owns the *new* coordination state in Supabase; the legacy `~/.fstack/projects/` files are still written by inherited gstack skills (`/retro`, `/learn`-equivalent helpers). Two state stores during transition; eventually consolidate into the brain.
+The brain owns the *new* coordination state in Supabase. Inherited gstack skills (`/retro`, `/review`, etc.) still write some legacy data to `~/.fstack/projects/` (timeline.jsonl, learnings.jsonl) — harmless local-only logs. Eventually consolidate into the brain.
 
 ## Failure semantics
 

@@ -27,6 +27,20 @@ git cherry-pick <hash>
 
 ## Sync history
 
+### 2026-05-04 — Second cleanup pass
+
+- Dropped 3 skills that were on the agreed "drop" list but slipped through fork-day:
+  `/benchmark-models`, `/open-fstack-browser`, `/setup-deploy`.
+- Removed broken symlink `connect-chrome → open-fstack-browser`.
+- Renamed `/landing-report` → `/queue` (agreed in final plan, finally executed).
+- Removed orphan bins: `fstack-learnings-log`, `fstack-learnings-search`
+  (powered deleted `/learn`), `fstack-model-benchmark` (powered deleted
+  `/benchmark-models`), `fstack-session-update` (auto-update; we hardcoded off).
+- Refreshed `~/.claude/skills/` symlinks to drop dead and pick up `/queue`.
+- Updated README, ARCHITECTURE, UPSTREAM_SYNCS to reflect cleaned inventory.
+
+Final skill count: 32 (10 fstack-original + 7 modified gstack + 15 untouched gstack).
+
 ### 2026-05-04 — Fork day
 
 - Cleaned ~30% of upstream tree.
@@ -37,7 +51,7 @@ git cherry-pick <hash>
 - Renamed `gstack` → `fstack` everywhere except `garrytan/gstack` upstream URLs.
 - Added `brain/` (schema, CLI, server) and `hooks/` (Claude Code hook installer).
 - Added 10 fstack-original skills.
-- Brain-aware overlays added to: `/ship`, `/freeze`, `/guard`, `/retro`, `/land-and-deploy`, `/skillify`, `/landing-report`.
+- Brain-aware overlays added to: `/ship`, `/freeze`, `/guard`, `/retro`, `/land-and-deploy`, `/skillify`, `/landing-report` (renamed to `/queue` in second cleanup pass).
 - Renamed `scripts/app/gstack-browser` → `fstack-browser`.
 
 ## Known follow-ups

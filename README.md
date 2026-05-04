@@ -26,10 +26,10 @@ The killer feature: `/resolve`. When git surfaces a merge conflict, fstack pulls
 `/sync`  `/intent`  `/presence`  `/handoff`  `/resolve`  `/decide`  `/standup`  `/office-hours`  `/office-review`  `/why`
 
 ### Modified gstack skills (7) — brain-aware
-`/ship`  `/land-and-deploy`  `/freeze`  `/guard`  `/retro`  `/skillify`  `/landing-report` (=`/queue`)
+`/ship`  `/land-and-deploy`  `/freeze`  `/guard`  `/retro`  `/skillify`  `/queue`
 
-### Untouched gstack skills (10+)
-`/review`  `/investigate`  `/qa`  `/qa-only`  `/browse`  `/setup-browser-cookies`  `/connect-chrome`  `/codex`  `/cso`  `/canary`  `/document-release`  `/benchmark`  `/careful`  `/scrape`  `/health`  `/benchmark-models`
+### Untouched gstack skills (15)
+`/review`  `/investigate`  `/qa`  `/qa-only`  `/browse`  `/setup-browser-cookies`  `/codex`  `/cso`  `/canary`  `/document-release`  `/benchmark`  `/careful`  `/unfreeze`  `/scrape`  `/health`
 
 ## Install
 
@@ -99,7 +99,6 @@ fstack/
 ├── bin/
 │   ├── fstack-brain-setup       # Brain bootstrap (called by ./setup)
 │   ├── fstack-config            # gstack-inherited config CLI
-│   ├── fstack-session-update    # gstack-inherited update hook
 │   ├── fstack-settings-hook     # gstack-inherited Claude settings editor
 │   └── ...                      # other gstack-inherited helpers
 ├── browse/                      # gstack-inherited Chromium daemon
