@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# fstack-init — bootstrap fstack in the current git repo
+#
+# Run ONCE inside each project repo where you want fstack to be visible to
+# Claude Code agents. Idempotent: re-running is safe.
+#
+# What it does:
+#   1. Detects the canonical repo URL (origin remote)
+#   2. Appends a "## fstack" section to CLAUDE.md (or creates the file)
+#      with a link to the fstack repo + a one-line summary of routing
+#   3. Creates docs/decisions/ if missing (where /decide ADRs land)
+#   4. Prints the suggested git commit command
+#
+# What it does NOT do:
+#   - Does NOT commit (you commit when you're ready)
+#   - Does NOT touch ~/.claude/settings.json (that's ./setup's job, global)
+#   - Does NOT install hooks per-repo (hooks are global, run once via ./setup)
+#   - Does NOT modify config.yaml (per-machine, set up by ./setup)
+#
+# Usage: cd into any git repo that you want fstack to know about, then run:
+#   fstack init
+
+set -e
+
+# -----------------------------------------------------------------------------
+# 1. Verify we're inside a git repo
+# -----------------------------------------------------------------------------
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "fstack-init: not inside a git repo. cd into your project first." >&2
+  exit 1
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+# -----------------------------------------------------------------------------
+# 2. Detect canonical repo URL (cosmetic — used in CLAUDE.md)
+# -----------------------------------------------------------------------------
+RAW_URL=$(git config --get remote.origin.url 2>/dev/null || true)
+if [ -z "$RAW_URL" ]; then
+  # Try first listed remote
+  FIRST_REMOTE=$(git remote 2>/dev/null | head -1)
+  if [ -n "$FIRST_REMOTE" ]; then
+    RAW_URL=$(git config --get "remote.${FIRST_REMOTE}.url" 2>/dev/null || true)
+  fi
+fi
+if [ -n "$RAW_URL" ]; then
+  # Normalize git@host:org/repo.git → host/org/repo
+  CANONICAL=$(echo "$RAW_URL" | sed -e 's|^git@\([^:]*\):|\1/|' -e 's|^https\?://||' -e 's|\.git$||' -e 's|/$||')
+else
+  CANONICAL="local:$REPO_ROOT"
+fi
+
+# -----------------------------------------------------------------------------
+# 3. Ensure CLAUDE.md has the fstack section
+# -----------------------------------------------------------------------------
+CLAUDE_MD="CLAUDE.md"
+MARKER="<!-- fstack-init -->"
+
+# Build the section content (heredoc'd so $CANONICAL interpolates)
+read -r -d '' FSTACK_SECTION <<EOF || true
+
+$MARKER
+## fstack
+
+This repo uses [fstack](https://github.com/sanskarbasnet/fstack) for shared multi-agent AI coordination. Hooks auto-fire at SessionStart, edits, prompts, and SessionEnd. Brain operations are scoped to **\`$CANONICAL\`**.
+
+**Routing** — use these skills proactively when relevant:
+
+- New feature → \`/office-hours <topic>\` → \`/spec\` → \`/pursue\`
+- Pre-PR review → \`/review\`
+- Browser QA → \`/qa <url>\`
+- Security audit → \`/cso\`
+- Idea capture → \`/idea <text>\`
+- Debugging → \`/investigate\`
+- Stepping away → \`/handoff <note>\`
+- Merge conflict → \`/resolve\`
+- File history → \`/why <file>\` or \`/audit-trail <thing>\`
+- Lost? → \`/fstack-help\`
+
+ADR files written by \`/decide\` land in \`docs/decisions/\` (committed). Wishlist ideas captured by \`/idea\` land in the shared brain only — not in this repo.
+EOF
+
+CHANGED=0
+
+if [ -f "$CLAUDE_MD" ]; then
+  if grep -q "$MARKER" "$CLAUDE_MD"; then
+    echo "  ✓ $CLAUDE_MD already has fstack section (skipping)"
+  else
+    printf "%s\n" "$FSTACK_SECTION" >> "$CLAUDE_MD"
+    echo "  ✓ appended fstack section to $CLAUDE_MD"
+    CHANGED=1
+  fi
+else
+  printf "# %s\n%s\n" "$(basename "$REPO_ROOT")" "$FSTACK_SECTION" > "$CLAUDE_MD"
+  echo "  ✓ created $CLAUDE_MD with fstack section"
+  CHANGED=1
+fi
+
+# -----------------------------------------------------------------------------
+# 4. Ensure docs/decisions/ exists (where /decide writes ADR files)
+# -----------------------------------------------------------------------------
+if [ -d "docs/decisions" ]; then
+  echo "  ✓ docs/decisions/ already exists"
+else
+  mkdir -p docs/decisions
+  # Add a README so the empty dir is checked into git
+  cat > docs/decisions/README.md <<EOF
+# Architecture Decision Records (ADRs)
+
+This directory holds ADRs written by fstack's \`/decide\` skill.
+
+Each file is one decision: what we chose, why, the trade-off, and when to revisit. Decisions are searchable from any agent's brain via \`fstack-brain decide search\`.
+
+Don't edit these by hand unless you're correcting a typo. To supersede a decision, write a new one that references it.
+EOF
+  echo "  ✓ created docs/decisions/ (with README)"
+  CHANGED=1
+fi
+
+# -----------------------------------------------------------------------------
+# 5. Final report
+# -----------------------------------------------------------------------------
+echo ""
+if [ "$CHANGED" -eq 1 ]; then
+  echo "fstack initialized in $REPO_ROOT."
+  echo ""
+  echo "Next: review and commit"
+  echo "  git diff CLAUDE.md docs/decisions"
+  echo "  git add CLAUDE.md docs/decisions"
+  echo "  git commit -m 'chore: bootstrap fstack for AI coordination'"
+else
+  echo "fstack already initialized in $REPO_ROOT — nothing to do."
+fi
+echo ""
+echo "Open Claude Code in this repo and type /fstack-help to see all skills."

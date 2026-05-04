@@ -117,7 +117,27 @@ You should see Claude run `fstack-brain sync` automatically and print the team d
 
 ---
 
-## Step 5 — You're done. How to actually use fstack
+## Step 5 — Bootstrap each project repo (`fstack-init`)
+
+After `./setup` finishes, fstack is installed **globally** on your machine — hooks fire in any git repo you open Claude Code in. But each project repo also needs a small one-time bootstrap so Claude Code agents in *that* repo know fstack is available and which skills to route through.
+
+Inside any project where you want fstack visible:
+
+```bash
+cd ~/code/your-project
+fstack-init
+```
+
+What it does (idempotent — re-running is safe):
+
+1. Detects the canonical repo URL (origin remote)
+2. Appends a `## fstack` section to `CLAUDE.md` (or creates the file) with skill-routing guidance keyed to *this* repo
+3. Creates `docs/decisions/` with a README (where `/decide` writes ADR files)
+4. Prints the suggested `git add`/`git commit` command — it does **not** auto-commit
+
+Owen and any other teammate cloning the repo after the commit will get the fstack section automatically — no per-machine action needed besides the global `./setup` they already ran.
+
+## Step 6 — You're done. How to actually use fstack
 
 Read [`README.md`](README.md) for the philosophy and skill inventory.
 

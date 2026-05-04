@@ -47,6 +47,15 @@ cp -f "$CLI_DIR/dist/fstack-brain" "$BIN_TARGET"
 chmod +x "$BIN_TARGET"
 log "installed $BIN_TARGET (copied from $CLI_DIR/dist/fstack-brain)"
 
+# 3b. Also symlink fstack-init onto PATH so users can `fstack-init` from any repo
+INIT_SOURCE="$FSTACK_ROOT/bin/fstack-init"
+INIT_TARGET="$HOME/.local/bin/fstack-init"
+if [ -f "$INIT_SOURCE" ]; then
+  ln -sfn "$INIT_SOURCE" "$INIT_TARGET"
+  chmod +x "$INIT_SOURCE"
+  log "linked $INIT_TARGET → $INIT_SOURCE"
+fi
+
 # Verify on PATH
 if ! command -v fstack-brain >/dev/null 2>&1; then
   log "WARNING: fstack-brain not on PATH. Add this to your shell rc:"
@@ -86,9 +95,24 @@ bun "$HOOKS_INSTALLER"
 
 # 6. Doctor
 log "running fstack-brain doctor..."
-if "$BIN_TARGET" doctor; then
-  log "✓ setup complete. Try '/sync' inside Claude Code to verify."
-else
+if ! "$BIN_TARGET" doctor; then
   err "doctor reported failures. Re-check Supabase URL/key and that schema.sql was applied."
   exit 1
 fi
+
+# 7. If we were invoked from inside a different git repo, offer to bootstrap it
+INVOCATION_CWD="${OLDPWD:-$PWD}"
+if [ -d "$INVOCATION_CWD/.git" ] && [ "$INVOCATION_CWD" != "$FSTACK_ROOT" ]; then
+  log ""
+  log "It looks like you ran setup from inside another git repo:"
+  log "  $INVOCATION_CWD"
+  log ""
+  log "To make Claude Code aware fstack is available there, also run:"
+  log "  cd $INVOCATION_CWD && fstack-init"
+  log ""
+fi
+
+log "✓ setup complete."
+log "  - Open Claude Code in any repo and try '/fstack-help' or '/sync'."
+log "  - In each project repo where you want fstack visible to Claude Code,"
+log "    cd into it and run: fstack-init"
