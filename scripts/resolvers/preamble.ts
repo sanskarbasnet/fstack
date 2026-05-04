@@ -58,6 +58,7 @@ import { generateContextHealth } from './preamble/generate-context-health';
 // Tier 3+ repo mode + search
 import { generateRepoModeSection } from './preamble/generate-repo-mode-section';
 import { generateSearchBeforeBuildingSection } from './preamble/generate-search-before-building';
+import { generateMultiAgentAwarenessSection } from './preamble/generate-multi-agent-awareness';
 
 // Standalone export used directly by the resolver registry
 export { generateTestFailureTriage } from './preamble/generate-test-failure-triage';
@@ -114,6 +115,7 @@ export function generatePreamble(ctx: TemplateContext): string {
       generateQuestionTuning(ctx),
     ] : []),
     ...(tier >= 3 ? [generateRepoModeSection(), generateSearchBeforeBuildingSection(ctx)] : []),
+    ...(tier >= 2 ? [generateMultiAgentAwarenessSection(ctx)] : []),
     generateCompletionStatus(ctx),
   ];
   return sections.filter(s => s && s.trim().length > 0).join('\n\n');
