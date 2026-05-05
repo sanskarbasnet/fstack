@@ -33,7 +33,7 @@ import {
 } from "./commands/handoff.ts";
 import { conflictPrecheck } from "./commands/conflict-precheck.ts";
 import { presenceShow } from "./commands/presence.ts";
-import { decideWrite, decideSearch } from "./commands/decide.ts";
+import { decideWrite, decideSearch, decideInfer } from "./commands/decide.ts";
 import { standupCmd } from "./commands/standup.ts";
 import { whyCmd } from "./commands/why.ts";
 import { flushCmd, queueStatusCmd } from "./commands/flush.ts";
@@ -90,6 +90,7 @@ Commands:
   presence                            show other agents' live state
   decide write --title T --body B
   decide search --query Q [--limit N]
+  decide infer --prompt P              auto-detect decisions in user prompts (hook)
   standup [--window day|week]
   why --target P
   coordinate --topic "<text>"         scan brain for collisions before coding
@@ -185,6 +186,8 @@ async function main() {
             query: str(subArgs.query),
             limit: typeof subArgs.limit === "string" ? parseInt(subArgs.limit, 10) : undefined,
           });
+        if (sub === "infer")
+          return await decideInfer({ prompt: str(subArgs.prompt) });
         process.stderr.write(`unknown decide subcommand: ${sub}\n`);
         process.exit(2);
       }

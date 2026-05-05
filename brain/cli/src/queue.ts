@@ -278,6 +278,7 @@ async function applyOp(
         body: p.body,
         authored_by: p.authored_by,
         timeline: p.timeline,
+        source: p.source ?? "manual",
         created_at: p.created_at,
       });
       if (error) throw error;

@@ -8,6 +8,7 @@
  *   SessionStart       → fstack-brain sync
  *   SessionEnd         → fstack-brain handoff auto
  *   UserPromptSubmit   → fstack-brain intent infer --prompt "$CLAUDE_USER_PROMPT"
+ *                          + fstack-brain decide infer --prompt "$CLAUDE_USER_PROMPT"
  *   PostToolUse        → fstack-brain log-edit --file "$CLAUDE_TOOL_INPUT_FILE_PATH"
  *                          (matchers: Edit, Write, MultiEdit)
  *   PreToolUse         → fstack-brain conflict-precheck
@@ -74,6 +75,11 @@ const HOOKS: Array<{
     event: "UserPromptSubmit",
     command: `${BRAIN} intent infer --prompt "\${CLAUDE_USER_PROMPT:-}"`,
     signature: "fstack-brain intent infer",
+  },
+  {
+    event: "UserPromptSubmit",
+    command: `${BRAIN} decide infer --prompt "\${CLAUDE_USER_PROMPT:-}"`,
+    signature: "fstack-brain decide infer",
   },
   {
     event: "PostToolUse",

@@ -6,7 +6,11 @@ description: |
   Log a decision (ADR) to the brain and write a markdown file in
   docs/decisions/NNNN-slug.md. Capture non-obvious calls so future-you and the
   other agent don't relitigate them. Search past decisions before recommending
-  anything load-bearing. (fstack)
+  anything load-bearing.
+
+  Most decisions auto-log via the UserPromptSubmit hook (`fstack-brain decide
+  infer`) — you only need to invoke /decide manually for refining a stub or
+  capturing a decision that didn't trip the regex detector. (fstack)
 allowed-tools:
   - Bash
   - Read
@@ -32,15 +36,37 @@ Two things:
    Keyword (ILIKE) search across decision title + body. Use this BEFORE
    recommending anything load-bearing — chances are it was decided before.
 
-## When to invoke (write)
+## Auto-detection (zero-friction default)
 
-- User says "let's commit to X" / "we're going with X for now" / "decided"
-- A non-obvious tradeoff was just made in conversation (architecture choice,
-  vendor switch, scope cut, deferred feature)
-- After resolving a long debate — write down the chosen path and the reason
+Every user prompt fires `fstack-brain decide infer` via the UserPromptSubmit
+hook. The detector uses a regex pre-filter against decision-shaped patterns
+("let's go with", "decided", "going with", "instead of", "we'll use",
+"sticking with", "ditch", "deprecate", "no longer use", etc.) plus heuristic
+guards that skip questions, hypotheticals, and very short prompts.
 
-You should *propose* `/decide` proactively when you detect those patterns,
-via a one-line ask: "want me to /decide this?"
+When the detector hits, the decision auto-logs with `source='infer'` — no
+prompt to the user, no waiting on agent judgment. Review the auto-logged
+batch with `fstack-brain decide search --query <topic>` (the `source` column
+distinguishes manual vs inferred). Refine stub bodies via `decide write`
+when needed.
+
+**Off-switch:** `FSTACK_DECIDE_INFER_OFF=1` disables the hook detector
+entirely. Keep this in your shell when working on something the brain
+shouldn't be observing (security review, sensitive prompt drafting, etc.).
+
+**Dedup:** the detector skips duplicates of the same prompt within a
+5-minute cooldown, so retyping doesn't spam the brain.
+
+## When to invoke /decide manually
+
+The hook catches most decisions, but invoke /decide manually when:
+
+- The decision happened across multiple turns and no single prompt captured
+  it (the regex detector only sees one prompt at a time)
+- You want to refine a stub the detector wrote — set a real title and body
+- A non-obvious tradeoff was made by the agent (not by your prompt) — the
+  hook only sees user input, not agent output
+- You want to capture a deliberate "we are NOT doing X" decision
 
 ## When to invoke (search)
 
