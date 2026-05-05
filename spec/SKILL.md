@@ -56,12 +56,45 @@ fstack-brain decide search --query "<keywords from intent title>"
 If no active intent → propose the user run `/office-hours` or `/intent`
 first. Do NOT spec a feature with no intent — the intent IS the seed.
 
+#### 1a. Look for a deep-mode design doc
+
+`/office-hours --deep` may have written a design exploration to
+`docs/designs/<slug>.md` before /spec runs. Check for it:
+
+```bash
+ls docs/designs/ 2>/dev/null
+```
+
+If a design doc exists whose slug matches the intent title (kebab-case
+fuzzy match), READ IT in full. The doc contains:
+- The 2-3 designs that were considered
+- The recommended design
+- A ship-next-week vs best-version split
+- Open questions
+
+When this doc is present, the spec's job changes:
+- The spec implements the design the user picked (ship-next-week or
+  best-version — ask if not stated). It is NOT a re-debate.
+- The spec's "Goal" section cites the design doc by path.
+- The spec's "Out of scope" section quotes the rejected designs and the
+  designs-not-picked column from the deep-mode comparison table — so
+  the user (and /pursue) can see what was already considered and
+  consciously deferred.
+- The spec's "Open Questions" can pull directly from the design doc's
+  open-questions section.
+
+If no design doc exists, proceed normally — /spec works fine without one.
+
 ### Step 2 — codebase scan (boil-the-lake)
 
 Heuristic, capped at ~10 files. Same pattern as /office-hours:
 - Keyword grep on the intent title
 - Read top hits' structure
 - Note existing abstractions you'd extend vs duplicate
+
+If a deep-mode design doc was loaded in 1a, this scan can be lighter —
+the design doc already cited the relevant abstractions. Use the scan to
+verify, not to re-discover.
 
 ### Step 3 — draft the spec sections
 
@@ -156,6 +189,9 @@ Next step:
   Empty matrix = /pursue has no completion signal.
 - Must NOT duplicate /office-hours. /office-hours is brainstorming (should
   we?). /spec is execution contract (how exactly).
+- Must NOT re-debate a design that `/office-hours --deep` already settled.
+  If `docs/designs/<slug>.md` exists for this intent, treat the picked
+  design as decided. Spec implements it; spec doesn't second-guess it.
 - Must NOT ask more than 3-4 confirmation questions. If you need more,
   the upstream brainstorm wasn't deep enough — say so and propose
   /office-hours instead of belaboring spec.
